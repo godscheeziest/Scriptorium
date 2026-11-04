@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/questions.js": { "maxDuration": 60 },
+    "api/bible.js": { "maxDuration": 20 }
+  },
+  "headers": [
+    { "source": "/data/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] },
+    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+  ]
+}

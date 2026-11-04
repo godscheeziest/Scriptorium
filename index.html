@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scriptorium Study</title>
+<meta name="description" content="Bible reading, concordance, sermon notes and discussion questions.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: left rail of tools · centre reading column · right study margin (bottom sheet on phones) */
+:root{
+  --paper:#F6F7F4; --panel:#FFFFFF; --ink:#1D2320; --muted:#5D6862; --rule:#DCE1DD; --soft:#EDF0EC;
+  --accent:#2A5B4D; --accent-ink:#FFFFFF; --rubric:#A1281F; --hl:#F3E3A6; --ok:#2E7A4F;
+  --scripture:"Literata",Georgia,"Times New Roman",serif;
+  --ui:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#121614; --panel:#1A1F1C; --ink:#E4E9E5; --muted:#99A49E; --rule:#2B332F; --soft:#20272348;
+  --accent:#86BCA9; --accent-ink:#0F1A16; --rubric:#E58A7E; --hl:#5A4C1C; --ok:#7CC79A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#121614; --panel:#1A1F1C; --ink:#E4E9E5; --muted:#99A49E; --rule:#2B332F; --soft:#20272348;
+  --accent:#86BCA9; --accent-ink:#0F1A16; --rubric:#E58A7E; --hl:#5A4C1C; --ok:#7CC79A; color-scheme:dark}
+html,body{height:100%}
+body{margin:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5}
+*{box-sizing:border-box}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:grid;grid-template-columns:200px minmax(0,1fr) 360px;height:100%;}
+/* rail */
+.rail{border-right:1px solid var(--rule);padding:20px 14px;display:flex;flex-direction:column;gap:22px;padding-left:max(14px,env(safe-area-inset-left,0px))}
+.brand{font-family:var(--scripture);font-size:21px;font-weight:600;letter-spacing:-.01em;line-height:1.1}
+.brand small{display:block;font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.tabs{display:flex;flex-direction:column;gap:2px}
+.tab{display:flex;align-items:center;gap:10px;background:none;border:0;text-align:left;padding:9px 10px;border-radius:var(--r);color:var(--muted);font-weight:600}
+.tab svg{width:18px;height:18px;flex:none}
+.tab:hover{background:var(--soft);color:var(--ink)}
+.tab[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.rail-foot{margin-top:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
+.status-dot.on{background:var(--ok)}
+/* main */
+main{min-width:0;overflow:auto;padding-block:20px 40px}
+.view{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
+select,input[type=text],input[type=search],input[type=date],textarea{background:var(--panel);border:1px solid var(--rule);border-radius:var(--r);padding:7px 10px;min-width:0}
+textarea{width:100%;resize:vertical}
+.btn{border:1px solid var(--rule);background:var(--panel);border-radius:var(--r);padding:7px 12px;font-weight:600;font-size:14px;display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);background:var(--soft)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sm{padding:4px 9px;font-size:13px}
+.label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1.ref{font-family:var(--scripture);font-weight:600;font-size:34px;letter-spacing:-.015em;margin:4px 0 2px;text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+/* reader */
+.chapter{font-family:var(--scripture);font-size:19px;line-height:1.75;max-width:65ch}
+.chapter.parallel{max-width:none;display:grid;grid-template-columns:1fr 1fr;gap:4px 28px;font-size:17px}
+.chapter.parallel .colhead{font-family:var(--ui)}
+.v{cursor:pointer;border-radius:3px;padding:1px 0;transition:background .15s}
+.v:hover{background:var(--soft)}
+.v.sel{background:var(--hl)}
+.v sup{font-family:var(--ui);font-size:11px;font-weight:700;color:var(--rubric);margin:0 3px 0 6px;font-variant-numeric:tabular-nums}
+.v.noted sup::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-left:2px;vertical-align:4px}
+.pv{display:block;margin-bottom:6px}
+.chap-nav{display:flex;justify-content:space-between;margin-top:28px;gap:8px}
+/* study margin */
+.study{border-left:1px solid var(--rule);background:var(--panel);overflow:auto;padding:20px 18px 40px;padding-right:max(18px,env(safe-area-inset-right,0px))}
+.study h2{font-family:var(--scripture);font-size:22px;margin:2px 0 10px;font-weight:600}
+.sec{border-top:1px solid var(--rule);padding-top:14px;margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.sec:first-of-type{border-top:0;margin-top:0;padding-top:0}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vers-row{font-family:var(--scripture);font-size:15px;line-height:1.6}
+.vers-row b{font-family:var(--ui);font-size:11px;letter-spacing:.08em;color:var(--muted);margin-right:6px}
+.words{font-family:var(--scripture);font-size:16px;line-height:1.9}
+.word{border:0;background:none;padding:0 1px;border-bottom:1px dotted var(--muted);border-radius:0}
+.word:hover,.word.on{color:var(--accent);border-bottom-color:var(--accent)}
+.xref{display:block;width:100%;text-align:left;border:0;background:none;padding:7px 8px;border-radius:var(--r);font-size:14px}
+.xref:hover{background:var(--soft)}
+.xref .r{font-weight:700;color:var(--rubric);margin-right:6px;font-size:13px}
+.xref .t{font-family:var(--scripture);color:var(--ink)}
+.lex{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:3px;background:var(--paper)}
+.lex .top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.lex .num{font-weight:700;font-size:12px;color:var(--rubric);font-variant-numeric:tabular-nums}
+.lex .lemma{font-size:20px;font-family:"SBL Hebrew","Ezra SIL","Times New Roman",var(--scripture)}
+.lex .tr{font-style:italic;color:var(--muted)}
+.lex .def{font-size:14px}
+.lex .kjv{font-size:12.5px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.note-link{display:flex;flex-direction:column;align-items:flex-start;border:1px solid var(--rule);border-radius:var(--r);background:var(--paper);padding:8px 10px;text-align:left;width:100%}
+.note-link:hover{border-color:var(--accent)}
+.note-link .why{font-size:12px;color:var(--muted)}
+.sheet-close{display:none}
+/* search */
+.hits{display:flex;flex-direction:column}
+.hit{border:0;border-top:1px solid var(--rule);background:none;text-align:left;padding:10px 2px;display:grid;grid-template-columns:110px 1fr;gap:12px}
+.hit:hover{background:var(--soft)}
+.hit .r{font-weight:700;color:var(--rubric);font-size:13px;font-variant-numeric:tabular-nums}
+.hit .t{font-family:var(--scripture);font-size:15.5px;line-height:1.55}
+mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
+.dist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 16px;margin:6px 0 18px}
+.dist button{display:grid;grid-template-columns:1fr auto;gap:6px;border:0;background:none;padding:2px 0;font-size:13px;text-align:left;position:relative}
+.dist button .bar-fill{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);opacity:.7}
+.dist button.on{color:var(--accent);font-weight:700}
+.dist .n{font-variant-numeric:tabular-nums;color:var(--muted)}
+.lexgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:20px}
+/* notes */
+.notes-wrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px;max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.note-list{display:flex;flex-direction:column;gap:6px}
+.note-item{border:1px solid transparent;background:none;text-align:left;border-radius:var(--r);padding:9px 10px;display:flex;flex-direction:column;gap:1px}
+.note-item:hover{background:var(--soft)}
+.note-item.on{background:var(--panel);border-color:var(--rule)}
+.note-item .tt{font-weight:700}
+.note-item .mm{font-size:12px;color:var(--muted)}
+.editor{display:flex;flex-direction:column;gap:12px;min-width:0}
+.title-in{font-family:var(--scripture);font-size:28px;font-weight:600;border:0;background:none;padding:0;width:100%}
+.title-in:focus{outline:none;border-bottom:1px solid var(--rule)}
+.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.meta label{display:flex;flex-direction:column;gap:3px;min-width:0}
+.body-in{min-height:300px;font-family:var(--scripture);font-size:16.5px;line-height:1.7;padding:14px 16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;color:var(--rubric)}
+.chip:hover{border-color:var(--rubric)}
+.save-state{font-size:12px;color:var(--muted)}
+.qgroup{display:flex;flex-direction:column;gap:6px}
+.qgroup h4{margin:8px 0 2px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.q{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;padding:8px 10px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)}
+.q input{margin-top:4px}
+.q.done .qt{color:var(--muted);text-decoration:line-through}
+.q .qt{font-family:var(--scripture);font-size:15.5px;line-height:1.5}
+.q .acts{display:flex;gap:2px}
+.q.child{margin-left:28px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:var(--r);font-size:14px;z-index:50}
+.notice{font-size:13px;color:var(--muted);border:1px dashed var(--rule);border-radius:var(--r);padding:10px 12px}
+.examples{font-size:12px;color:var(--muted)}
+/* responsive */
+@media (max-width:1100px){.app{grid-template-columns:180px minmax(0,1fr) 320px}}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .rail{flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--rule);padding:10px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));gap:12px}
+  .brand small,.rail-foot{display:none}
+  .tabs{flex-direction:row;margin-left:auto}
+  .tab span{display:none}
+  .study{position:fixed;left:0;right:0;bottom:0;max-height:72%;border-left:0;border-top:1px solid var(--rule);box-shadow:0 -8px 30px #0003;z-index:30;border-radius:14px 14px 0 0;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .study.closed{display:none}
+  .sheet-close{display:inline-flex}
+  .notes-wrap{grid-template-columns:1fr}
+  .note-list{flex-direction:row;overflow-x:auto;padding-bottom:4px}
+  .note-item{min-width:160px}
+  .chapter.parallel{grid-template-columns:1fr}
+  .meta{grid-template-columns:1fr}
+  .hit{grid-template-columns:1fr;gap:2px}
+  h1.ref{font-size:28px}
+}
+.copyright{font-size:11.5px;color:var(--muted);max-width:65ch;margin-top:18px;line-height:1.45}
+.backup{display:flex;gap:6px;flex-wrap:wrap}
+.pass{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="rail" aria-label="Tools">
+    <div class="brand">Scriptorium<small>Study · Sermons · Questions</small></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" data-view="read" id="tab-read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/></svg><span>Read</span></button>
+      <button class="tab" data-view="search" id="tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Concordance</span></button>
+      <button class="tab" data-view="notes" id="tab-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Sermon notes</span></button>
+    </div>
+    <div class="rail-foot">
+      <div><span class="status-dot" id="store-dot"></span><span id="store-label">Connecting…</span></div>
+      <div id="ai-label">Question builder: checking…</div>
+      <div class="backup"><button class="btn sm" id="export-notes">Back up notes</button><label class="btn sm" for="import-file">Restore</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
+      <div>Built in: BSB, KJV, ASV (public domain). <span id="lic-label"></span> Cross-references: OpenBible.info (CC-BY). Lexicon: Strong's.</div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- READ -->
+    <section class="view" id="view-read">
+      <div class="bar">
+        <select id="sel-book" aria-label="Book"></select>
+        <select id="sel-chap" aria-label="Chapter"></select>
+        <select id="sel-ver" aria-label="Version"></select>
+        <select id="sel-par" aria-label="Compare with"><option value="">Compare: off</option></select>
+        <input type="text" id="goto" placeholder="Go to… e.g. Rom 8:28" aria-label="Go to reference" style="flex:1;min-width:150px">
+      </div>
+      <div class="label" id="read-ver-label">Berean Standard Bible</div>
+      <h1 class="ref" id="read-title">John 3</h1>
+      <p class="sub" id="read-sub">Tap any verse to open cross-references, other versions, word studies and your notes.</p>
+      <div class="chapter" id="chapter"><p class="empty">Loading the text…</p></div>
+      <div class="copyright" id="read-copy" hidden></div>
+      <div class="chap-nav"><button class="btn" id="prev-ch">← Previous</button><button class="btn" id="next-ch">Next →</button></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="view" id="view-search" hidden>
+      <form class="bar" id="search-form">
+        <input type="search" id="q" placeholder="Word, phrase, or Strong's number (G26, H2617)" style="flex:1;min-width:200px" aria-label="Search">
+        <select id="q-ver" aria-label="Version to search"></select>
+        <select id="q-scope" aria-label="Scope"><option value="all">Whole Bible</option><option value="ot">Old Testament</option><option value="nt">New Testament</option></select>
+        <label class="sub" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="q-whole" checked> Whole words</label>
+        <button class="btn primary" type="submit">Search</button>
+      </form>
+      <div id="search-out">
+        <div class="label">Concordance</div>
+        <h1 class="ref">Every occurrence, by book</h1>
+        <p class="sub">Search a word to see every verse that uses it, how it spreads across the books, and the Hebrew and Greek words behind it in Strong's lexicon.</p>
+        <p class="examples">Try: <button class="btn ghost sm" data-try="steadfast love">steadfast love</button> <button class="btn ghost sm" data-try="grace">grace</button> <button class="btn ghost sm" data-try="G26">G26</button> <button class="btn ghost sm" data-try="abide">abide</button></p>
+      </div>
+    </section>
+
+    <!-- NOTES -->
+    <section id="view-notes" hidden>
+      <div class="notes-wrap">
+        <aside>
+          <div class="bar" style="justify-content:space-between"><div class="label">Your notes</div><button class="btn primary sm" id="new-note">+ New</button></div>
+          <div class="note-list" id="note-list"></div>
+          <div class="backup" style="margin-top:14px"><button class="btn ghost sm" type="button" onclick="document.getElementById('export-notes').click()">Back up notes</button><label class="btn ghost sm" for="import-file">Restore from backup</label></div>
+        </aside>
+        <div class="editor" id="editor"></div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="study closed" id="study" aria-label="Study panel">
+    <div id="study-body"></div>
+  </aside>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* ---------- Book data & reference parsing ---------- */
+const BOOKS=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
+const VERSIONS={BSB:"Berean Standard Bible",KJV:"King James Version",ASV:"American Standard Version",ESV:"English Standard Version",NLT:"New Living Translation"};
+const LOCAL=["BSB","KJV","ASV"]; const REMOTE=["ESV","NLT"];
+const AVAIL={ESV:false,NLT:false,claude:false,passcode:false}; const COPY={};
+const usable=()=>[...LOCAL,...REMOTE.filter(k=>AVAIL[k])];
+const ALIAS={0:"gen ge gn",1:"exod exo ex",2:"lev le lv",3:"num nu nm nb",4:"deut dt de",5:"josh jos",6:"judg jdg",7:"ru rth",14:"ezr",15:"neh ne",16:"esth est es",17:"jb",18:"psalm ps psa pss",19:"prov pro pr prv",20:"eccl ecc qoh eccles",21:"song sos songs|song of songs|canticles",22:"isa is",23:"jer je",24:"lam la",25:"ezek eze ezk",26:"dan da dn",27:"hos ho",28:"jl",29:"am",30:"obad ob",31:"jon jnh",32:"mic mi",33:"nah na",34:"hab",35:"zeph zep",36:"hag",37:"zech zec",38:"mal",39:"matt mt mat",40:"mk mrk mar",41:"lk luk",42:"jn jhn joh",43:"ac",44:"rom ro rm",47:"gal ga",48:"eph",49:"phil php",50:"col",55:"tit",56:"phlm philem phm",57:"heb",58:"jas jm",64:"jud",65:"rev re revelations|revelation of john"};
+const NUMBERED={"Samuel":"sam sa sm","Kings":"kgs ki kin","Chronicles":"chr chron ch","Corinthians":"cor co","Thessalonians":"thess thes th","Timothy":"tim ti","Peter":"pet pe pt","John":"jn jhn joh"};
+function ciPat(s,strict){ // strict: only capitalised first letter allowed
+  return s.split("").map((ch,i)=>{ if(!/[a-z]/i.test(ch)) return ch===" "?"\\s+":ch.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+    if(strict) return i===0?ch.toUpperCase():ch.toLowerCase(); return "["+ch.toLowerCase()+ch.toUpperCase()+"]";}).join("");
+}
+const aliasList=[]; // [pattern, bookIndex]
+BOOKS.forEach((name,i)=>{
+  const m=name.match(/^(\d) (.+)$/);
+  if(m){const n=m[1],base=m[2];const nums={"1":"(?:1|I|First|1st)","2":"(?:2|II|Second|2nd)","3":"(?:3|III|Third|3rd)"}[n];
+    const names=[base.toLowerCase(),...NUMBERED[base].split(" ")];
+    names.forEach(a=>aliasList.push([nums+"\\s*"+ciPat(a,a.length<=2)+(a.length<base.length?"\\.?":""),i]));}
+  else{const names=[name.toLowerCase(),...((ALIAS[i]||"").split(/[ |]/).filter(Boolean))];
+    // multiword aliases separated by |
+    const multi=(ALIAS[i]||"").includes("|")?(ALIAS[i].split("|").slice(1)):[];
+    const singles=[name.toLowerCase(),...((ALIAS[i]||"").split("|")[0].split(" ").filter(Boolean))];
+    [...new Set([...singles,...multi])].forEach(a=>aliasList.push([ciPat(a,a.length<=2)+(a.length<name.length&&!a.includes(" ")?"\\.?":""),i]));}
+});
+aliasList.sort((a,b)=>b[0].length-a[0].length);
+const REF_RE=new RegExp("(?<![\\w])("+aliasList.map(a=>"("+a[0]+")").join("|")+")\\s*(\\d{1,3})(?:\\s*[:.]\\s*(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?)?(?![\\w:])","g");
+function bookFromMatch(m){for(let k=0;k<aliasList.length;k++){if(m[k+2]!==undefined)return aliasList[k][1];}return -1;}
+function parseRefs(text){
+  const out=[];REF_RE.lastIndex=0;let m;
+  while((m=REF_RE.exec(text))){const b=bookFromMatch(m);const n=aliasList.length;const c=+m[n+2],v1=m[n+3]?+m[n+3]:null,v2=m[n+4]?+m[n+4]:null;
+    if(b<0)continue; out.push({b,c,v1,v2:v2&&v2>v1?v2:v1,index:m.index,len:m[0].length});}
+  return out;
+}
+function refLabel(r){return BOOKS[r.b]+" "+r.c+(r.v1?":"+r.v1+(r.v2&&r.v2!==r.v1?"–"+r.v2:""):"");}
+function shortBook(b){const n=BOOKS[b];return n.length>9?n.replace(/^(\d )?(\w{3,4}).*$/,(x,p,s)=>(p||"")+s):n;}
+function refKeys(r){if(!r.v1)return[r.b+"."+r.c+".*"];const k=[];for(let v=r.v1;v<=(r.v2||r.v1)&&k.length<60;v++)k.push(r.b+"."+r.c+"."+v);return k;}
+
+/* ---------- Data loading ---------- */
+const cache={};
+function load(name){ if(!cache[name]) cache[name]=fetch("data/"+name+".json").then(r=>{if(!r.ok)throw new Error(name);return r.json();}); return cache[name]; }
+function passcode(){try{return localStorage.getItem("scr-pass")||"";}catch(e){return "";}}
+async function api(url,opts={}){
+  const r=await fetch(url,{...opts,headers:{...(opts.headers||{}),"x-app-passcode":passcode()}});
+  if(r.status===401){askPasscode();throw new Error("This app needs its passcode. Enter it in the box at the top of the page.");}
+  return r;
+}
+function askPasscode(){ if($("#pass-box"))return; const box=document.createElement("div");box.id="pass-box";box.className="notice";box.style.margin="0 0 16px";
+  box.innerHTML='<b>Enter the app passcode</b> to use ESV, NLT and Claude questions.<form class="pass" id="pass-form"><input type="text" id="pass-in" autocomplete="off" placeholder="Passcode"><button class="btn primary sm">Save</button></form>';
+  document.querySelector("section:not([hidden]) .view, section.view:not([hidden])")?.prepend(box)||$("#main").prepend(box);
+  box.querySelector("form").addEventListener("submit",e=>{e.preventDefault();try{localStorage.setItem("scr-pass",$("#pass-in").value.trim());}catch(x){}box.remove();toast("Passcode saved");if(S.view==="read")renderChapter();});}
+const remoteCache={ESV:new Map(),NLT:new Map()};
+function remember(ver,key,arr){const m=remoteCache[ver];m.delete(key);m.set(key,arr);let total=0;for(const a of m.values())total+=a.filter(Boolean).length;
+  while(total>500&&m.size>1){const k=m.keys().next().value;total-=m.get(k).filter(Boolean).length;m.delete(k);}}
+function toArray(obj){const n=Math.max(0,...Object.keys(obj).map(Number));const a=[];for(let i=1;i<=n;i++)a.push(obj[i]||"");return a;}
+async function getChapter(ver,b,c){
+  if(LOCAL.includes(ver)){const d=await load(ver);return d[b]?.[c-1]||[];}
+  const key=b+"."+c; if(remoteCache[ver].has(key))return remoteCache[ver].get(key);
+  const r=await api(`api/bible?v=${ver}&b=${b}&c=${c}`); const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||`${ver} couldn't be loaded.`);
+  COPY[ver]=j.copyright; const arr=toArray(j.verses); remember(ver,key,arr); return arr;
+}
+async function getVerse(ver,b,c,v){
+  if(LOCAL.includes(ver))return verseText(await load(ver),b,c,v);
+  const ch=remoteCache[ver].get(b+"."+c); if(ch)return ch[v-1]||"";
+  const r=await api(`api/bible?v=${ver}&b=${b}&c=${c}&v1=${v}`); const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||`${ver} couldn't be loaded.`); COPY[ver]=j.copyright; return j.verses[v]||"";
+}
+function verseText(bible,b,c,v){return (bible[b]&&bible[b][c-1]&&bible[b][c-1][v-1])||"";}
+function rangeText(bible,r){ if(!r.v1){return (bible[r.b]?.[r.c-1]||[]).slice(0,3).join(" ")+" …";}
+  const a=[];for(let v=r.v1;v<=(r.v2||r.v1);v++)a.push(verseText(bible,r.b,r.c,v));return a.join(" ");}
+function parseXref(s){ // "42.3.16" | "42.3.16-18" | "42.3.16-43.1.2"
+  const [a,e]=s.split("-");const [b,c,v]=a.split(".").map(Number);let v2=v;
+  if(e){ if(e.includes(".")){/* spans chapters: keep to first chapter end */ const p=e.split(".").map(Number); v2=(p[0]===b&&p[1]===c)?p[2]:v+3;} else v2=+e;}
+  return {b,c,v1:v,v2};
+}
+
+/* ---------- State ---------- */
+const S={view:"read",ver:"BSB",par:"",b:42,c:3,sel:null,notes:[],activeNote:null,store:null,sample:null,lexWord:null};
+try{const p=JSON.parse(localStorage.getItem("scr-pos")||"null");if(p){Object.assign(S,{ver:p.ver||"BSB",b:p.b??42,c:p.c||3,par:p.par||""});}}catch(e){}
+function savePos(){try{localStorage.setItem("scr-pos",JSON.stringify({ver:S.ver,b:S.b,c:S.c,par:S.par}));}catch(e){}}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200);}
+
+/* ---------- Views / routing ---------- */
+function show(view){S.view=view;["read","search","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
+  if(location.hash!=="#"+view)history.replaceState(null,"","#"+view);
+  if(view!=="read"&&window.innerWidth<=860)$("#study").classList.add("closed");
+  if(view==="notes")renderNotes(); if(view==="read")renderChapter();}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>show(t.dataset.view)));
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["read","search","notes"].includes(h))show(h);});
+
+/* ---------- Reader ---------- */
+function fillSelectors(bible){
+  const sb=$("#sel-book");if(!sb.options.length){sb.innerHTML=BOOKS.map((n,i)=>`<option value="${i}">${n}</option>`).join("");}
+  sb.value=S.b;
+  $("#sel-chap").innerHTML=bible[S.b].map((_,i)=>`<option value="${i+1}">Chapter ${i+1}</option>`).join("");$("#sel-chap").value=S.c;
+  fillVersionMenus();
+}
+function fillVersionMenus(){
+  const keys=usable(); if(!keys.includes(S.ver))S.ver="BSB"; if(S.par&&!keys.includes(S.par))S.par="";
+  const vo=keys.map(k=>`<option value="${k}">${k} · ${VERSIONS[k]}</option>`).join("");
+  $("#sel-ver").innerHTML=vo; $("#sel-par").innerHTML='<option value="">Compare: off</option>'+keys.map(k=>`<option value="${k}">Compare: ${k}</option>`).join("");
+  const qv=$("#q-ver").value; $("#q-ver").innerHTML=keys.filter(k=>k!=="NLT").map(k=>`<option value="${k}">${k}${k==="ESV"?" (via Crossway)":""}</option>`).join(""); if(qv)$("#q-ver").value=qv;
+  $("#sel-ver").value=S.ver;$("#sel-par").value=S.par;
+  const lic=REMOTE.filter(k=>AVAIL[k]); $("#lic-label").textContent=lic.length?`Licensed: ${lic.join(", ")} (fetched live, non-commercial use).`:"ESV and NLT appear once their API keys are added.";
+}
+function notedKeys(){const set=new Set();S.notes.forEach(n=>(n.refs||[]).forEach(r=>refKeys(r).forEach(k=>set.add(k))));return set;}
+async function renderChapter(){
+  const base=await load("BSB"); if(!base[S.b]?.[S.c-1]){S.c=1;}
+  fillSelectors(base); const el=$("#chapter");
+  $("#read-title").textContent=BOOKS[S.b]+" "+S.c; $("#read-ver-label").textContent=VERSIONS[S.ver]+(S.par&&S.par!==S.ver?" · compared with "+S.par:"");
+  let vs,par=null;
+  try{ if(REMOTE.includes(S.ver))el.innerHTML='<p class="empty"><span class="spinner"></span> Loading '+S.ver+'…</p>';
+    vs=await getChapter(S.ver,S.b,S.c); if(S.par&&S.par!==S.ver)par=await getChapter(S.par,S.b,S.c);}
+  catch(e){el.className="chapter";el.innerHTML=`<p class="notice">${esc(e.message)} Showing BSB instead.</p>`;vs=base[S.b][S.c-1];}
+  const lic=[S.ver,S.par].filter(k=>REMOTE.includes(k)&&COPY[k]); $("#read-copy").hidden=!lic.length; $("#read-copy").innerHTML=lic.map(k=>esc(COPY[k])).join("<br>");
+  const noted=notedKeys();
+  const vspan=(t,v,i)=>`<span class="v${S.sel&&S.sel.b===S.b&&S.sel.c===S.c&&S.sel.v===v?" sel":""}${noted.has(S.b+"."+S.c+"."+v)?" noted":""}" data-v="${v}" tabindex="0"><sup>${v}</sup>${esc(t)}</span> `;
+  if(par){el.className="chapter parallel";const pv=par;
+    el.innerHTML=`<div class="label colhead">${S.ver}</div><div class="label colhead">${S.par}</div>`+vs.map((t,i)=>`<div class="pv">${vspan(t,i+1)}</div><div class="pv">${vspan(pv[i]||"",i+1)}</div>`).join("");}
+  else{el.className="chapter";el.innerHTML=(el.querySelector(".notice")?el.innerHTML:"")+"<p>"+vs.map((t,i)=>t?vspan(t,i+1):"").join("")+"</p>";}
+  savePos();
+}
+$("#chapter").addEventListener("click",e=>{const v=e.target.closest(".v");if(v)selectVerse(S.b,S.c,+v.dataset.v);});
+$("#chapter").addEventListener("keydown",e=>{if(e.key==="Enter"){const v=e.target.closest(".v");if(v)selectVerse(S.b,S.c,+v.dataset.v);}});
+$("#sel-book").addEventListener("change",e=>{S.b=+e.target.value;S.c=1;renderChapter();$("#main").scrollTop=0;});
+$("#sel-chap").addEventListener("change",e=>{S.c=+e.target.value;renderChapter();$("#main").scrollTop=0;});
+$("#sel-ver").addEventListener("change",e=>{S.ver=e.target.value;renderChapter();if(S.sel)renderStudy();});
+$("#sel-par").addEventListener("change",e=>{S.par=e.target.value;renderChapter();});
+async function step(d){const bible=await load("BSB");S.c+=d;if(S.c<1){if(S.b>0){S.b--;S.c=bible[S.b].length;}else S.c=1;}else if(S.c>bible[S.b].length){if(S.b<65){S.b++;S.c=1;}else S.c--;}renderChapter();$("#main").scrollTop=0;}
+$("#prev-ch").addEventListener("click",()=>step(-1));$("#next-ch").addEventListener("click",()=>step(1));
+$("#goto").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const r=parseRefs(e.target.value)[0];if(!r){toast("Couldn't read that reference. Try a form like “Rom 8:28”.");return;}e.target.value="";openRef(r);});
+function openRef(r){S.b=r.b;S.c=r.c;show("read");renderChapter().then(()=>{if(r.v1){selectVerse(r.b,r.c,r.v1);const el=document.querySelector(`.v[data-v="${r.v1}"]`);el&&el.scrollIntoView({block:"center"});}});}
+
+/* ---------- Study panel ---------- */
+function selectVerse(b,c,v){S.sel={b,c,v};S.lexWord=null;document.querySelectorAll(".v.sel").forEach(x=>x.classList.remove("sel"));document.querySelectorAll(`.v[data-v="${v}"]`).forEach(x=>x.classList.add("sel"));renderStudy();$("#study").classList.remove("closed");}
+const stem=w=>{w=w.toLowerCase().replace(/[^a-z]/g,"");return w.replace(/(eth|est|ing|ed|es|s)$/,"")||w;};
+async function renderStudy(){
+  const sb=$("#study-body"); if(!S.sel){sb.innerHTML=studyIntro();return;}
+  const {b,c,v}=S.sel; const ref={b,c,v1:v,v2:v};
+  const bible=await load(LOCAL.includes(S.ver)?S.ver:"BSB"); const xr=await load("xref");
+  const others=await Promise.all(usable().map(k=>getVerse(k,b,c,v).then(t=>[k,t],e=>[k,"(couldn't load: "+e.message+")"])));
+  const text=others.find(o=>o[0]===S.ver)?.[1]||verseText(bible,b,c,v);
+  const xrefs=(xr[b+"."+c+"."+v]||[]).map(parseXref);
+  const key=b+"."+c+"."+v; const related=S.notes.filter(n=>(n.refs||[]).some(r=>refKeys(r).includes(key)||refKeys(r).includes(b+"."+c+".*")));
+  const words=text.split(/(\s+)/).map(w=>/\w/.test(w)?`<button class="word${S.lexWord&&stem(w)===stem(S.lexWord)?" on":""}" data-w="${esc(w.replace(/[^\w'-]/g,""))}">${esc(w)}</button>`:esc(w)).join("");
+  sb.innerHTML=`
+  <div class="sec"><div class="sec-head"><div class="label">Selected verse</div><button class="btn ghost sm sheet-close" id="close-sheet">Close</button></div>
+    <h2>${refLabel(ref)}</h2>
+    <div class="bar" style="margin:0"><button class="btn primary sm" id="add-to-note">Add to sermon note</button><button class="btn sm" id="copy-verse">Copy</button></div></div>
+  <div class="sec"><div class="label">Word study · tap a word</div><div class="words">${words}</div><div id="lex-out"></div></div>
+  <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
+  <div class="sec"><div class="sec-head"><div class="label">Cross-references</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
+    ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
+  <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this verse yet.</p>'}</div>`;
+  if(S.lexWord)showLex(S.lexWord);
+}
+function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p></div>`;}
+$("#study").addEventListener("click",async e=>{
+  const t=e.target;
+  if(t.closest("#close-sheet")){$("#study").classList.add("closed");return;}
+  const w=t.closest(".word"); if(w){S.lexWord=w.dataset.w;document.querySelectorAll(".word").forEach(x=>x.classList.toggle("on",stem(x.dataset.w)===stem(S.lexWord)));showLex(S.lexWord);return;}
+  const x=t.closest(".xref"); if(x){openRef(JSON.parse(x.dataset.ref));return;}
+  const nl=t.closest(".note-link"); if(nl){S.activeNote=nl.dataset.note;show("notes");return;}
+  if(t.closest("#add-to-note"))addSelToNote();
+  if(t.closest("#copy-verse")){const {b,c,v}=S.sel;copyText(`“${await getVerse(S.ver,b,c,v)}” — ${BOOKS[b]} ${c}:${v} (${S.ver})`);}
+  const lx=t.closest("[data-search]"); if(lx){runSearch(lx.dataset.search);}
+});
+async function showLex(word){
+  const out=$("#lex-out"); if(!out)return; const lex=await load("lexicon"); const hits=lexLookup(lex,word,6);
+  out.innerHTML=hits.length?`<div class="sub">Hebrew and Greek words the KJV translates as “${esc(word)}”</div>`+hits.map(lexCard).join(""):`<p class="empty">No Strong's entry is translated “${esc(word)}”. Common words like “the” or “and” aren't indexed.</p>`;
+}
+function lexLookup(lex,word,max){
+  const s=stem(word); if(s.length<3)return[];
+  if(/^[GH]\d+$/i.test(word)){const k=word.toUpperCase();return lex[k]?[[k,lex[k]]]:[];}
+  const w=word.toLowerCase().replace(/[^a-z]/g,""); const exact=new Set([w,s,s+"e",s+"s"]);
+  const re=new RegExp("(^|[^a-z])"+s+"[a-z]{0,4}([^a-z]|$)","i"); const res=[];
+  for(const k in lex){const e=lex[k];if(!re.test(e[3]))continue;
+    const toks=e[3].toLowerCase().replace(/\([^)]*\)/g," ").split(/[^a-z]+/).filter(Boolean);
+    const score=(toks.some(t=>exact.has(t))?0:1.2)+(toks[0]&&exact.has(toks[0])?0:.3)+Math.min(toks.length,30)/80-Math.log1p(rootCount(lex)[k]||0)*.18;
+    res.push([k,e,score]);}
+  // Prefer NT entries when reading NT, and shorter (more central) definitions
+  const nt=S.sel?S.sel.b>=39:false;
+  res.sort((a,b)=>((a[0][0]==="G")===nt?0:.5)+a[2]-(((b[0][0]==="G")===nt?0:.5)+b[2]));
+  return res.slice(0,max);
+}
+let _rc=null;function rootCount(lex){if(_rc)return _rc;_rc={};for(const k in lex){const m=(lex[k][4]||"").match(/[GH]\d+/g);if(m)m.forEach(x=>{_rc[x]=(_rc[x]||0)+1;});}return _rc;}
+function lexCard([k,e]){return `<div class="lex"><div class="top"><span class="num">${k}</span><span class="lemma" lang="${k[0]==="G"?"grc":"he"}">${esc(e[0])}</span><span class="tr">${esc(e[1])}</span></div><div class="def">${esc(e[2]||"")}</div><div class="kjv">KJV renders: ${esc(e[3])}</div>${e[4]?`<div class="kjv">${esc(e[4])}</div>`:""}<div><button class="btn ghost sm" data-search="${k}">Find in the Bible</button></div></div>`;}
+
+/* ---------- Concordance ---------- */
+$("#search-form").addEventListener("submit",e=>{e.preventDefault();runSearch($("#q").value);});
+$("#view-search").addEventListener("click",e=>{const t=e.target.closest("[data-try],[data-search],.hit,[data-book]");if(!t)return;
+  if(t.dataset.try){runSearch(t.dataset.try);} else if(t.dataset.search){runSearch(t.dataset.search);} else if(t.classList.contains("hit")){if(t.dataset.ref)openRef(JSON.parse(t.dataset.ref));} else if(t.dataset.book!==undefined){S.searchBook=S.searchBook===+t.dataset.book?null:+t.dataset.book;drawHits();}});
+let SR=null;
+async function runSearch(q){
+  q=(q||"").trim(); if(!q)return; show("search"); $("#q").value=q; const out=$("#search-out"); out.innerHTML=`<p class="sub"><span class="spinner"></span> Searching…</p>`;
+  const ver=$("#q-ver").value||"BSB"; if(ver==="ESV")return esvSearchRun(q,1);
+  const [bible,lex]=await Promise.all([load(ver),load("lexicon")]);
+  const scope=$("#q-scope").value; S.searchBook=null;
+  let lexHits=[]; let terms=[q];
+  if(/^[GH]\d+$/i.test(q)){ // Strong's number → search its English renderings
+    lexHits=lexLookup(lex,q,1); const e=lexHits[0]?.[1];
+    if(e){terms=e[3].replace(/\([^)]*\)/g," ").split(/[,;.]/).map(s=>s.replace(/[^a-z ]/gi,"").trim()).filter(s=>s.length>2).slice(0,6);} }
+  else lexHits=lexLookup(lex,q.split(/\s+/)[0],8);
+  const whole=$("#q-whole").checked; const escRe=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const re=new RegExp((whole?"\\b(":"(")+terms.map(escRe).join("|")+(whole?")\\b":")"),"gi");
+  const hits=[];const lo=scope==="nt"?39:0,hi=scope==="ot"?39:66;
+  for(let b=lo;b<hi;b++)bible[b].forEach((ch,ci)=>ch.forEach((t,vi)=>{re.lastIndex=0;if(re.test(t))hits.push({b,c:ci+1,v:vi+1,t});}));
+  SR={q,ver,hits,lexHits,re,terms};drawHits();
+}
+async function esvSearchRun(q,page){
+  const out=$("#search-out"); let j;
+  try{const r=await api(`api/bible?v=ESV&search=${encodeURIComponent(q)}&page=${page}`);j=await r.json();if(!r.ok)throw new Error(j.error||"ESV search failed.");}
+  catch(e){out.innerHTML=`<p class="notice">${esc(e.message)}</p>`;return;}
+  COPY.ESV=j.copyright; const lex=lexLookup(await load("lexicon"),q.split(/\s+/)[0],8);
+  const re=new RegExp("\\b("+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi");
+  const rows=j.results.map(h=>{const r=parseRefs(h.ref)[0];return `<button class="hit" ${r?`data-ref='${JSON.stringify({b:r.b,c:r.c,v1:r.v1,v2:r.v2})}'`:""}><span class="r">${esc(h.ref)}</span><span class="t">${esc(h.text).replace(re,m=>"<mark>"+m+"</mark>")}</span></button>`;}).join("");
+  const html=`${page===1?`<div class="label">Concordance · ESV (Crossway search)</div><h1 class="ref">“${esc(q)}”</h1><p class="sub">${j.total.toLocaleString()} passages</p>
+    ${lex.length?`<div class="label" style="margin-top:18px">Original-language words · Strong's</div><div class="lexgrid">${lex.map(lexCard).join("")}</div>`:""}<div class="hits" id="esv-hits">`:""}${rows}`;
+  if(page===1)out.innerHTML=html+`</div><div id="esv-more"></div><div class="copyright">${esc(j.copyright)}</div>`; else $("#esv-hits").insertAdjacentHTML("beforeend",rows);
+  $("#esv-more").innerHTML=j.page<j.pages?`<p><button class="btn" id="esv-more-btn">Load more (page ${j.page+1} of ${j.pages})</button></p>`:"";
+  $("#esv-more-btn")?.addEventListener("click",()=>esvSearchRun(q,page+1));
+  if(!j.total)$("#esv-hits").innerHTML='<p class="empty">No ESV passages use that wording.</p>';
+}
+function drawHits(){
+  const {q,ver,hits,lexHits,re,terms}=SR; const counts={};hits.forEach(h=>counts[h.b]=(counts[h.b]||0)+1);const max=Math.max(1,...Object.values(counts));
+  const shown=(S.searchBook==null?hits:hits.filter(h=>h.b===S.searchBook)); const lim=shown.slice(0,300);
+  $("#search-out").innerHTML=`
+    <div class="label">Concordance · ${ver}</div><h1 class="ref">“${esc(q)}”</h1>
+    <p class="sub">${hits.length.toLocaleString()} verse${hits.length===1?"":"s"} in ${Object.keys(counts).length} book${Object.keys(counts).length===1?"":"s"}${terms.length>1||terms[0]!==q?" · searched for: "+esc(terms.join(", ")):""}</p>
+    ${lexHits.length?`<div class="label" style="margin-top:18px">Original-language words · Strong's</div><div class="lexgrid">${lexHits.map(lexCard).join("")}</div>`:""}
+    ${hits.length?`<div class="label">Where it appears · tap a book to filter</div><div class="dist">${Object.entries(counts).map(([b,n])=>`<button data-book="${b}" class="${S.searchBook===+b?"on":""}"><span>${BOOKS[b]}</span><span class="n">${n}</span><span class="bar-fill" style="width:${Math.round(n/max*100)}%"></span></button>`).join("")}</div>`:""}
+    <div class="hits">${lim.map(h=>`<button class="hit" data-ref='{"b":${h.b},"c":${h.c},"v1":${h.v},"v2":${h.v}}'><span class="r">${shortBook(h.b)} ${h.c}:${h.v}</span><span class="t">${esc(h.t).replace(new RegExp(re.source,"gi"),m=>"<mark>"+m+"</mark>")}</span></button>`).join("")}</div>
+    ${shown.length>300?`<p class="sub">Showing the first 300 of ${shown.length}. Tap a book above to narrow the list.</p>`:""}
+    ${!hits.length?`<p class="empty">No verses in ${ver} use that wording. Try another version, or turn off “Whole words”.</p>`:""}`;
+}
+
+/* ---------- Notes store: saved in this browser, with backup/restore files ---------- */
+const LOCAL_KEY="scr-notes";
+const store={
+  mode:"local",
+  async init(){this.loadLocal();setStoreLabel();},
+  loadLocal(){try{S.notes=JSON.parse(localStorage.getItem(LOCAL_KEY)||"[]");}catch(e){S.notes=[];}S.notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));onNotesChanged();},
+  persist(){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(S.notes));}catch(e){toast("Couldn't save. Your browser storage may be full or blocked.");}},
+  async save(n){n.updatedAt=Date.now();const i=S.notes.findIndex(x=>x.id===n.id);if(i<0)S.notes.unshift(n);else S.notes[i]=n;this.persist();onNotesChanged();},
+  async remove(id){S.notes=S.notes.filter(n=>n.id!==id);this.persist();onNotesChanged();}
+};
+$("#export-notes").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify({app:"scriptorium",version:1,exported:new Date().toISOString(),notes:S.notes},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`scriptorium-notes-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+$("#import-file").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{const j=JSON.parse(await f.text());const incoming=Array.isArray(j)?j:j.notes; if(!Array.isArray(incoming))throw 0;
+    let added=0,updated=0; incoming.forEach(n=>{if(!n||!n.id)return;const i=S.notes.findIndex(x=>x.id===n.id);
+      if(i<0){S.notes.push(n);added++;}else if((n.updatedAt||0)>(S.notes[i].updatedAt||0)){S.notes[i]=n;updated++;}});
+    S.notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); store.persist(); onNotesChanged(); if(S.view==="notes")renderNotes();
+    toast(`Restored: ${added} new, ${updated} updated`);}
+  catch(x){toast("That file isn't a Scriptorium backup.");}
+  e.target.value="";
+});
+function setStoreLabel(){$("#store-dot").classList.add("on");$("#store-label").textContent="Notes saved in this browser";}
+function onNotesChanged(){
+  if(S.view==="notes"){renderNoteList();const ed=$("#editor");if(!ed.contains(document.activeElement))renderEditor();else renderSide();}
+  if(S.view==="read")document.querySelectorAll(".v").forEach(el=>{const k=S.b+"."+S.c+"."+el.dataset.v;el.classList.toggle("noted",notedKeys().has(k));});
+}
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function blankNote(extra){return {id:newId(),title:"",speaker:"",date:new Date().toISOString().slice(0,10),passage:"",body:"",refs:[],questions:[],...extra};}
+function activeNote(){return S.notes.find(n=>n.id===S.activeNote);}
+
+async function addSelToNote(){
+  const {b,c,v}=S.sel; const vt=await getVerse(S.ver,b,c,v).catch(()=>null)||verseText(await load("BSB"),b,c,v); let n=activeNote()||S.notes[0];
+  if(!n){n=blankNote({title:"Notes on "+BOOKS[b]+" "+c,passage:BOOKS[b]+" "+c});}
+  n=JSON.parse(JSON.stringify(n));
+  n.body=(n.body?n.body.replace(/\s*$/,"")+"\n\n":"")+`${BOOKS[b]} ${c}:${v} — “${vt}” (${S.ver})\n`;
+  n.refs=collectRefs(n); S.activeNote=n.id; await store.save(n); toast("Added to “"+(n.title||"Untitled")+"”");
+}
+
+/* ---------- Notes UI ---------- */
+function renderNotes(){renderNoteList();renderEditor();}
+function renderNoteList(){
+  const el=$("#note-list");
+  if(!S.notes.length){el.innerHTML=`<p class="empty">No notes yet.</p>`;return;}
+  if(!activeNote())S.activeNote=S.notes[0].id;
+  el.innerHTML=S.notes.map(n=>`<button class="note-item${n.id===S.activeNote?" on":""}" data-id="${n.id}"><span class="tt">${esc(n.title||"Untitled")}</span><span class="mm">${esc([n.passage,n.date].filter(Boolean).join(" · "))}</span></button>`).join("");
+}
+$("#note-list").addEventListener("click",e=>{const b=e.target.closest(".note-item");if(!b)return;flushSave();S.activeNote=b.dataset.id;renderNotes();});
+$("#new-note").addEventListener("click",async()=>{flushSave();const n=blankNote();S.activeNote=n.id;await store.save(n);renderNotes();$(".title-in")?.focus();});
+function collectRefs(n){const seen=new Set();return [...parseRefs(n.passage||""),...parseRefs(n.body||"")].filter(r=>{const k=refLabel(r);if(seen.has(k))return false;seen.add(k);return true;}).map(({b,c,v1,v2})=>({b,c,v1,v2}));}
+
+function renderEditor(){
+  const ed=$("#editor"); const n=activeNote();
+  if(!n){ed.innerHTML=`<div class="label">Sermon notes</div><h1 class="ref">Start your first sermon note</h1>
+    <p class="sub" style="max-width:60ch">Write as you listen. Any reference you type (John 15:5, Ps 23, 1 Cor 13:4-7) is picked up automatically, linked to the reader, and used to connect this sermon with your other notes. When you're done, build discussion questions from it.</p>
+    <div class="bar"><button class="btn primary" id="first-note">New note</button><button class="btn" id="example-note">Load an example sermon</button></div>`;return;}
+  ed.innerHTML=`
+    <input class="title-in" id="n-title" placeholder="Sermon title" value="${esc(n.title)}">
+    <div class="meta">
+      <label><span class="label">Speaker</span><input type="text" id="n-speaker" value="${esc(n.speaker)}" placeholder="Pastor, teacher…"></label>
+      <label><span class="label">Date</span><input type="date" id="n-date" value="${esc(n.date)}"></label>
+      <label><span class="label">Main passage</span><input type="text" id="n-passage" value="${esc(n.passage)}" placeholder="e.g. John 15:1-11"></label>
+    </div>
+    <textarea class="body-in" id="n-body" placeholder="Main points, quotes, illustrations, verses as they're read…">${esc(n.body)}</textarea>
+    <div class="bar" style="justify-content:space-between;margin:0"><span class="save-state" id="save-state">${n.example?"Example note · edit or delete it anytime":"Saved"}</span><span><button class="btn ghost sm" id="del-note">Delete note</button></span></div>
+    <div id="note-side"></div>`;
+  renderSide();
+}
+let saveT=null,pending=null;
+function flushSave(){if(pending){clearTimeout(saveT);const n=pending;pending=null;store.save(n);}}
+$("#editor").addEventListener("input",e=>{
+  const n=activeNote(); if(!n)return; const m={"n-title":"title","n-speaker":"speaker","n-date":"date","n-passage":"passage","n-body":"body"}[e.target.id]; if(!m)return;
+  n[m]=e.target.value; const before=JSON.stringify(n.refs||[]); n.refs=collectRefs(n); $("#save-state").textContent="Editing…";
+  pending=n; clearTimeout(saveT); saveT=setTimeout(()=>{pending=null;store.save(JSON.parse(JSON.stringify(n))).then(()=>{const s=$("#save-state");if(s)s.textContent="Saved";});},800);
+  if(m==="title"){const it=document.querySelector(`.note-item[data-id="${n.id}"] .tt`);if(it)it.textContent=n.title||"Untitled";}
+  if(before!==JSON.stringify(n.refs))renderSide();
+});
+$("#editor").addEventListener("click",async e=>{
+  const t=e.target;
+  if(t.id==="first-note"){$("#new-note").click();return;}
+  if(t.id==="example-note"){const n=exampleNote();S.activeNote=n.id;await store.save(n);renderNotes();return;}
+  if(t.id==="del-note"){if(t.dataset.confirm){const id=S.activeNote;S.activeNote=null;await store.remove(id);renderNotes();toast("Note deleted");}else{t.dataset.confirm="1";t.textContent="Tap again to delete";setTimeout(()=>{if(t.isConnected){delete t.dataset.confirm;t.textContent="Delete note";}},3000);}return;}
+  const chip=t.closest(".chip[data-ref]"); if(chip){openRef(JSON.parse(chip.dataset.ref));return;}
+  const nl=t.closest(".note-link"); if(nl){flushSave();S.activeNote=nl.dataset.note;renderNotes();return;}
+  if(t.closest("#cancel-q")){qAbort&&qAbort.abort();return;}
+  if(t.closest("#build-q")){buildQuestions();return;}
+  if(t.closest("#copy-q")){copyQuestions();return;}
+  if(t.closest("#clear-q")){const n=activeNote();n.questions=[];store.save(JSON.parse(JSON.stringify(n)));renderSide();return;}
+  const qa=t.closest("[data-qact]"); if(qa){questionAction(qa.dataset.qact,qa.closest(".q").dataset.qid);return;}
+});
+$("#editor").addEventListener("change",e=>{if(e.target.matches(".q input[type=checkbox]")){questionAction("toggle",e.target.closest(".q").dataset.qid);}});
+
+async function renderSide(){
+  const side=$("#note-side"); const n=activeNote(); if(!side||!n)return;
+  const refs=n.refs||[]; const conn=await connections(n);
+  const qs=n.questions||[]; const kinds=[...new Set(qs.map(q=>q.kind))];
+  side.innerHTML=`
+    <div class="sec"><div class="sec-head"><div class="label">Scripture in this note</div><span class="sub">${refs.length} found</span></div>
+      ${refs.length?`<div class="chips">${refs.map(r=>`<button class="chip" data-ref='${JSON.stringify(r)}'>${refLabel(r)}</button>`).join("")}</div>`:'<p class="empty">Type a reference like “Rom 5:8” or “Psalm 23” and it will appear here.</p>'}</div>
+    <div class="sec"><div class="sec-head"><div class="label">Connected notes</div></div>
+      ${conn.length?conn.map(c=>`<button class="note-link" data-note="${c.n.id}"><b>${esc(c.n.title||"Untitled")}</b><span class="why">${esc(c.why)}</span></button>`).join(""):'<p class="empty">When another note cites the same verses, the same chapter, or a cross-reference of them, it shows up here.</p>'}</div>
+    <div class="sec"><div class="sec-head"><div class="label">Discussion questions</div>
+        <span>${qs.length?`<button class="btn ghost sm" id="copy-q">Copy for group</button><button class="btn ghost sm" id="clear-q">Clear</button>`:""}</span></div>
+      <p class="sub" style="margin:0">Built from your notes, the verses you cited, and their cross-references. Moves from what the text says, to what it means, to how it connects, to how to live it.</p>
+      <div><button class="btn primary" id="build-q" ${(n.body||"").trim().length<20&&!refs.length?"disabled":""}>${qs.length?"Build a fresh set":"Build questions"}</button> <span id="q-status" class="sub"></span></div>
+      ${kinds.map(k=>`<div class="qgroup"><h4>${esc(k)}</h4>${qs.filter(q=>q.kind===k).map(qHtml).join("")}</div>`).join("")}
+    </div>`;
+}
+function qHtml(q){return `<div class="q${q.done?" done":""}${q.parent?" child":""}" data-qid="${q.id}"><input type="checkbox" ${q.done?"checked":""} aria-label="Mark discussed"><div class="qt">${esc(q.text)}</div><div class="acts"><button class="btn ghost sm" data-qact="deeper" title="Generate follow-up questions">Go deeper</button><button class="btn ghost sm" data-qact="del" aria-label="Remove question">✕</button></div></div>`;}
+
+async function connections(n){
+  const xr=await load("xref"); const mine=new Set(),chaps=new Set(),xt=new Set();
+  (n.refs||[]).forEach(r=>{refKeys(r).forEach(k=>{mine.add(k);(xr[k]||[]).forEach(s=>{const p=parseXref(s);refKeys(p).forEach(x=>xt.add(x));});});chaps.add(r.b+"."+r.c);});
+  const out=[];
+  S.notes.forEach(o=>{if(o.id===n.id)return; const ok=new Set();(o.refs||[]).forEach(r=>refKeys(r).forEach(k=>ok.add(k)));
+    const shared=[...ok].filter(k=>mine.has(k)); const sameCh=(o.refs||[]).filter(r=>chaps.has(r.b+"."+r.c)); const viaX=[...ok].filter(k=>xt.has(k));
+    const lab=k=>{const [b,c,v]=k.split(".");return BOOKS[b]+" "+c+(v==="*"?"":":"+v);};
+    if(shared.length)out.push({n:o,score:3,why:"Both cite "+shared.slice(0,3).map(lab).join(", ")});
+    else if(sameCh.length)out.push({n:o,score:2,why:"Same chapter: "+refLabel(sameCh[0])});
+    else if(viaX.length)out.push({n:o,score:1,why:"Cross-reference link: "+viaX.slice(0,2).map(lab).join(", ")});
+  });
+  return out.sort((a,b)=>b.score-a.score).slice(0,8);
+}
+
+/* ---------- Questions ---------- */
+async function versesFor(n,max){const bible=await load("BSB");const xr=await load("xref");
+  const cited=(n.refs||[]).slice(0,14).map(r=>refLabel(r)+" — "+rangeText(bible,r).slice(0,600));
+  const xs=[];(n.refs||[]).slice(0,4).forEach(r=>{if(!r.v1)return;(xr[r.b+"."+r.c+"."+r.v1]||[]).slice(0,3).forEach(s=>{const p=parseXref(s);xs.push(refLabel(p)+" — "+rangeText(bible,p).slice(0,300));});});
+  return {cited,xs:xs.slice(0,max)};}
+let qAbort=null;
+function parseQLines(text){ // "## Kind" headers, "- question" lines
+  const groups=[];let cur=null;
+  text.split("\n").forEach(line=>{const h=line.match(/^\s*#+\s*(.+?)\s*$/);const q=line.match(/^\s*(?:[-*•]|\d+[.)])\s+(.+?)\s*$/);
+    if(h){cur={kind:h[1].replace(/[*:]/g,"").trim(),questions:[]};groups.push(cur);}
+    else if(q){if(!cur){cur={kind:"Questions",questions:[]};groups.push(cur);}cur.questions.push(q[1].replace(/\*\*/g,""));}});
+  return groups.filter(g=>g.questions.length);
+}
+function drawLiveQuestions(groups){const box=$("#q-live");if(!box)return;
+  box.innerHTML=groups.map(g=>`<div class="qgroup"><h4>${esc(g.kind)}</h4>${g.questions.map(t=>`<div class="q"><span></span><div class="qt">${esc(t)}</div><span></span></div>`).join("")}</div>`).join("");}
+async function streamClaude(payload,onText,signal){
+  const r=await api("api/questions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal});
+  if(!r.ok){const j=await r.json().catch(()=>({}));const e=new Error(j.error||"Claude couldn't answer.");e.code=j.error;e.status=r.status;throw e;}
+  const reader=r.body.getReader();const dec=new TextDecoder();let text="";
+  try{for(;;){const {done,value}=await reader.read();if(done)break;text+=dec.decode(value,{stream:true});onText&&onText(text);}}
+  catch(e){e.text=text;throw e;}
+  if(/\n\[error\] /.test(text)){const e=new Error(text.split("[error] ").pop());e.text=text.split("\n[error]")[0];throw e;}
+  return text;
+}
+async function buildQuestions(){
+  const n=activeNote(); flushSave(); const st=$("#q-status"); const btn=$("#build-q"); btn.disabled=true;
+  const {cited,xs}=await versesFor(n,8); let groups=null; let note="";
+  if(AVAIL.claude){
+    st.innerHTML=`<span class="spinner"></span> Asking Claude… <button class="btn ghost sm" id="cancel-q">Cancel</button>`;
+    $("#note-side .sec:last-child").insertAdjacentHTML("beforeend",'<div id="q-live"></div>');
+    qAbort=new AbortController(); let timedOut=false; const timer=setTimeout(()=>{timedOut=true;qAbort.abort();},90000); let got=false;
+    try{const text=await streamClaude({mode:"build",title:n.title,speaker:n.speaker,passage:n.passage,body:n.body,cited,xrefs:xs},t=>{const g=parseQLines(t);if(g.length){if(!got){got=true;st.innerHTML=`<span class="spinner"></span> Writing questions… <button class="btn ghost sm" id="cancel-q">Cancel</button>`;}drawLiveQuestions(g);}},qAbort.signal);
+      groups=parseQLines(text); if(!groups.length)groups=null;}
+    catch(e){ const partial=e&&e.text?parseQLines(e.text):[];
+      if(partial.length&&partial.reduce((a,g)=>a+g.questions.length,0)>=4){groups=partial;note="Stopped early; kept the questions written so far.";}
+      else if(timedOut)note="Claude took longer than 90 seconds, so these are the built-in questions. Try again for Claude's set.";
+      else if(e&&e.name==="AbortError")note="Cancelled. Showing the built-in questions.";
+      else note=(e&&e.message?e.message+" ":"")+"Showing the built-in questions.";
+    } finally{clearTimeout(timer);qAbort=null;}
+  }
+  if(!groups)groups=templateQuestions(n,cited,xs);
+  n.questions=[];groups.forEach(g=>(g.questions||[]).forEach(q=>n.questions.push({id:newId(),kind:String(g.kind||"Questions"),text:String(q),done:false})));
+  await store.save(JSON.parse(JSON.stringify(n))); await renderSide(); const st2=$("#q-status"); if(st2)st2.textContent=note;
+}
+function templateQuestions(n,cited,xs){
+  const refs=(n.refs||[]); const main=n.passage||(refs[0]?refLabel(refs[0]):"this passage");
+  const pts=(n.body||"").split(/\n+/).map(s=>s.replace(/^[-*•\d.)\s]+/,"").trim()).filter(s=>s.length>25&&!parseRefs(s).length).slice(0,3);
+  return [
+    {kind:"Observe",questions:[`Read ${main} aloud. Which words or phrases repeat, and why might they matter?`,`What does ${main} say about God, and what does it say about people?`,...(refs[1]?[`What does ${refLabel(refs[1])} add to the main passage?`]:[])]},
+    {kind:"Interpret",questions:[`What would ${main} have meant to the people who first heard it?`,...pts.slice(0,2).map(p=>`The sermon said: “${p.slice(0,140).replace(/[.]+$/,"")}.” What in the text supports that?`)]},
+    {kind:"Connect",questions:xs.slice(0,3).map(x=>`How does ${x.split(" — ")[0]} shed light on ${main}?`)},
+    {kind:"Apply",questions:[`What is one specific thing you will do differently this week because of ${main}?`,`Where do you find it hardest to believe or live out this passage?`]},
+    {kind:"Go deeper",questions:[`What question would a skeptic raise about ${main}, and how would you answer from Scripture?`]},
+  ].filter(g=>g.questions.length);
+}
+async function questionAction(act,qid){
+  const n=activeNote(); const i=n.questions.findIndex(q=>q.id===qid); if(i<0)return; const q=n.questions[i];
+  if(act==="toggle")q.done=!q.done;
+  if(act==="del")n.questions.splice(i,1);
+  if(act==="deeper"){
+    const btn=document.querySelector(`.q[data-qid="${qid}"] [data-qact="deeper"]`); if(btn){btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;}
+    let follow=null;
+    if(AVAIL.claude){try{const {cited}=await versesFor(n,0);
+      const t=await streamClaude({mode:"deeper",title:n.title,passage:n.passage,question:q.text,cited},null,AbortSignal.timeout?AbortSignal.timeout(45000):undefined);
+      follow=parseQLines(t).flatMap(g=>g.questions);}catch(e){follow=null;}}
+    if(!Array.isArray(follow)||!follow.length)follow=[`What in the text makes you say that?`,`Where else in Scripture do you see this same idea?`,`What would change if you really believed this?`];
+    n.questions.splice(i+1,0,...follow.slice(0,3).map(t=>({id:newId(),kind:q.kind,text:String(t),done:false,parent:q.id})));
+  }
+  await store.save(JSON.parse(JSON.stringify(n))); renderSide();
+}
+function copyQuestions(){const n=activeNote();const kinds=[...new Set(n.questions.map(q=>q.kind))];
+  const txt=`${n.title||"Sermon"}${n.passage?" — "+n.passage:""}\n\n`+kinds.map(k=>k.toUpperCase()+"\n"+n.questions.filter(q=>q.kind===k).map((q,i)=>(q.parent?"   – ":(i+1)+". ")+q.text).join("\n")).join("\n\n");copyText(txt);}
+function copyText(txt){navigator.clipboard?.writeText(txt).then(()=>toast("Copied"),()=>fallbackCopy(txt))??fallbackCopy(txt);}
+function fallbackCopy(txt){const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("Copied");}catch(e){toast("Select the text and copy it manually");}ta.remove();}
+
+function exampleNote(){return blankNote({example:true,title:"The Vine and the Branches (example)",speaker:"Example sermon",passage:"John 15:1-11",
+  body:`Big idea: Fruitfulness is the result of abiding, not striving.
+
+1. Jesus is the true vine (John 15:1)
+ - Israel was often pictured as a vine (Isaiah 5:1-7, Psalm 80:8). Jesus is the true one.
+ - The Father is the gardener who prunes — pruning is care, not punishment (Hebrews 12:10-11).
+
+2. Apart from me you can do nothing (John 15:5)
+ - "Abide" = remain, stay put, make your home. Used 10 times in these verses.
+ - Compare Galatians 5:22-23: fruit of the Spirit is character before activity.
+
+3. Abiding looks like obedience and joy (John 15:10-11)
+ - Keeping his commands is how we remain in his love.
+ - The goal is joy made full.
+
+Application: What am I trying to produce on my own this week?`})}
+
+/* ---------- AI availability ---------- */
+function setAiLabel(){$("#ai-label").textContent=AVAIL.claude?"Question builder: Claude":"Question builder: built-in templates (add ANTHROPIC_API_KEY for Claude)";}
+
+/* ---------- Boot ---------- */
+(async function boot(){
+  const h=location.hash.slice(1); show(["read","search","notes"].includes(h)?h:"read");
+  $("#study-body").innerHTML=studyIntro(); if(window.innerWidth>860)$("#study").classList.remove("closed");
+  store.init();
+  try{const r=await fetch("api/bible?status=1");if(r.ok)Object.assign(AVAIL,await r.json());}catch(e){}
+  setAiLabel(); fillVersionMenus(); if(S.view==="read")renderChapter();
+  // Open with a verse selected so the study margin shows what it does
+  if(!S.sel&&window.innerWidth>860){await load("BSB");selectVerse(S.b,S.c,S.b===42&&S.c===3?16:1);}
+  load("xref");load("lexicon");
+})();
+</script>
+</body>
+</html>
