@@ -109,6 +109,9 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .dist .n{font-variant-numeric:tabular-nums;color:var(--muted)}
 .lexgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:20px}
 /* notes */
+.notes-wrap.focus{grid-template-columns:minmax(0,1fr);max-width:960px}
+.notes-wrap.focus aside{display:none}
+.notes-wrap.focus .body-in{font-size:18px}
 .notes-wrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px;max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .note-list{display:flex;flex-direction:column;gap:6px}
 .note-item{border:1px solid transparent;background:none;text-align:left;border-radius:var(--r);padding:9px 10px;display:flex;flex-direction:column;gap:1px}
@@ -121,7 +124,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .title-in:focus{outline:none;border-bottom:1px solid var(--rule)}
 .meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .meta label{display:flex;flex-direction:column;gap:3px;min-width:0}
-.body-in{min-height:300px;font-family:var(--scripture);font-size:16.5px;line-height:1.7;padding:14px 16px}
+.body-in{min-height:max(460px,62vh);overflow:hidden;font-family:var(--scripture);font-size:16.5px;line-height:1.7;padding:14px 16px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;color:var(--rubric)}
 .chip:hover{border-color:var(--rubric)}
@@ -518,6 +521,8 @@ async function addSelToNote(){
 }
 
 /* ---------- Notes UI ---------- */
+function growBody(){const b=$("#n-body");if(!b)return;const y=$("#main").scrollTop;b.style.height="auto";b.style.height=Math.max(b.scrollHeight+4,0)+"px";$("#main").scrollTop=y;}
+try{if(localStorage.getItem("scr-focus"))document.querySelector(".notes-wrap").classList.add("focus");}catch(x){}
 function renderNotes(){renderNoteList();renderEditor();}
 function renderNoteList(){
   const el=$("#note-list");
@@ -542,14 +547,15 @@ function renderEditor(){
       <label><span class="label">Main passage</span><input type="text" id="n-passage" value="${esc(n.passage)}" placeholder="e.g. John 15:1-11"></label>
     </div>
     <textarea class="body-in" id="n-body" placeholder="Main points, quotes, illustrations, verses as they're read…">${esc(n.body)}</textarea>
-    <div class="bar" style="justify-content:space-between;margin:0"><span class="save-state" id="save-state">${n.example?"Example note · edit or delete it anytime":"Saved"}</span><span><button class="btn ghost sm" id="del-note">Delete note</button></span></div>
+    <div class="bar" style="justify-content:space-between;margin:0"><span class="save-state" id="save-state">${n.example?"Example note · edit or delete it anytime":"Saved"}</span><span><button class="btn ghost sm" id="focus-note">${document.querySelector(".notes-wrap")?.classList.contains("focus")?"Show notes list":"Focus: wider writing space"}</button><button class="btn ghost sm" id="del-note">Delete note</button></span></div>
     <div id="note-side"></div>`;
-  renderSide();
+  growBody(); renderSide();
 }
 let saveT=null,pending=null;
 function flushSave(){if(pending){clearTimeout(saveT);const n=pending;pending=null;store.save(n);}}
 $("#editor").addEventListener("input",e=>{
   const n=activeNote(); if(!n)return; const m={"n-title":"title","n-speaker":"speaker","n-date":"date","n-passage":"passage","n-body":"body"}[e.target.id]; if(!m)return;
+  if(m==="body")growBody();
   n[m]=e.target.value; const before=JSON.stringify(n.refs||[]); n.refs=collectRefs(n); $("#save-state").textContent="Editing…";
   pending=n; clearTimeout(saveT); saveT=setTimeout(()=>{pending=null;store.save(JSON.parse(JSON.stringify(n))).then(()=>{const s=$("#save-state");if(s)s.textContent="Saved";});},800);
   if(m==="title"){const it=document.querySelector(`.note-item[data-id="${n.id}"] .tt`);if(it)it.textContent=n.title||"Untitled";}
@@ -559,6 +565,7 @@ $("#editor").addEventListener("click",async e=>{
   const t=e.target;
   if(t.id==="first-note"){$("#new-note").click();return;}
   if(t.id==="example-note"){const n=exampleNote();S.activeNote=n.id;await store.save(n);renderNotes();return;}
+  if(t.id==="focus-note"){const w=$(".notes-wrap");w.classList.toggle("focus");t.textContent=w.classList.contains("focus")?"Show notes list":"Focus: wider writing space";try{localStorage.setItem("scr-focus",w.classList.contains("focus")?"1":"");}catch(x){}growBody();return;}
   if(t.id==="del-note"){if(t.dataset.confirm){const id=S.activeNote;S.activeNote=null;await store.remove(id);renderNotes();toast("Note deleted");}else{t.dataset.confirm="1";t.textContent="Tap again to delete";setTimeout(()=>{if(t.isConnected){delete t.dataset.confirm;t.textContent="Delete note";}},3000);}return;}
   const chip=t.closest(".chip[data-ref]"); if(chip){openRef(JSON.parse(chip.dataset.ref));return;}
   const nl=t.closest(".note-link"); if(nl){flushSave();S.activeNote=nl.dataset.note;renderNotes();return;}
