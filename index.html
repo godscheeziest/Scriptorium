@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Scriptorium Study</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#2A5B4D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scriptorium">
 <meta name="description" content="Bible reading, concordance, sermon notes and discussion questions.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
@@ -25,6 +31,7 @@
 html,body{height:100%}
 body{margin:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -124,7 +131,42 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .title-in:focus{outline:none;border-bottom:1px solid var(--rule)}
 .meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .meta label{display:flex;flex-direction:column;gap:3px;min-width:0}
-.body-in{min-height:max(460px,62vh);overflow:hidden;font-family:var(--scripture);font-size:16.5px;line-height:1.7;padding:14px 16px}
+.body-in{min-height:max(460px,62vh);font-family:var(--scripture);font-size:16.5px;line-height:1.7;padding:14px 18px;background:var(--panel);border:1px solid var(--rule);border-radius:0 0 var(--r) var(--r);outline:none;overflow-wrap:anywhere}
+.body-in:focus{border-color:var(--muted)}
+.body-in:empty::before{content:attr(data-placeholder);color:var(--muted)}
+.body-in>*:first-child{margin-top:0}
+.body-in p{margin:0 0 .55em}
+.body-in h3{font-size:1.3em;margin:1em 0 .35em;font-weight:600;letter-spacing:-.01em}
+.body-in h4{font-size:1.05em;margin:.9em 0 .3em;font-family:var(--ui);font-weight:700;color:var(--accent)}
+.body-in ul,.body-in ol{margin:0 0 .6em;padding-left:1.4em}
+.body-in li{margin:.15em 0}
+.body-in blockquote{margin:.4em 0 .8em;padding:.35em .9em;border-left:3px solid var(--rubric);background:var(--paper);border-radius:0 var(--r) var(--r) 0}
+.body-in mark{background:var(--hl);color:inherit;padding:0 2px;border-radius:2px}
+.fmt{display:flex;flex-wrap:wrap;gap:2px;padding:5px;border:1px solid var(--rule);border-bottom:0;border-radius:var(--r) var(--r) 0 0;background:var(--soft);position:sticky;top:0;z-index:5}
+.fmt button{border:0;background:none;border-radius:4px;min-width:34px;height:32px;padding:0 8px;font-size:14px;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.fmt button:hover{background:var(--panel)}
+.fmt .sep{width:1px;background:var(--rule);margin:4px 3px}
+.fmt svg{width:17px;height:17px}
+.v.pick{background:var(--hl);box-shadow:inset 0 -2px 0 var(--accent)}
+.pickbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--paper);border-radius:999px;padding:6px 6px 6px 16px;display:flex;align-items:center;gap:6px;box-shadow:0 8px 24px #0004;max-width:calc(100% - 32px);flex-wrap:wrap;justify-content:center}
+.pickbar .n{font-weight:700;font-size:14px;margin-right:4px}
+.pickbar .btn{border-color:transparent}
+.pickbar .btn.ghost{color:var(--paper)}
+.pickbar .btn.ghost:hover{background:#ffffff22;color:var(--paper)}
+.btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.study-nav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.study-nav form{display:flex;gap:6px;flex:1;min-width:180px}
+.study-nav input{flex:1;min-width:0}
+.passage{font-family:var(--scripture);font-size:16px;line-height:1.75}
+.passage sup{font-family:var(--ui);font-size:10.5px;font-weight:700;color:var(--rubric);margin:0 3px 0 4px}
+.passage .focus{background:var(--hl);border-radius:3px}
+.save-state.err{color:var(--rubric);font-weight:600}
+.export{border:1px solid var(--rule);border-radius:var(--r);background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.export .opts{display:flex;flex-wrap:wrap;gap:8px}
+.export .opts .btn{flex:1;min-width:140px;justify-content:center;flex-direction:column;gap:1px;padding:9px 12px}
+.export .opts .btn small{font-weight:400;font-size:11.5px;color:var(--muted)}
+.export a{color:var(--accent);font-weight:600}
+.body-in
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600;color:var(--rubric)}
 .chip:hover{border-color:var(--rubric)}
@@ -135,6 +177,9 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .q input{margin-top:4px}
 .q.done .qt{color:var(--muted);text-decoration:line-through}
 .q .qt{font-family:var(--scripture);font-size:15.5px;line-height:1.5}
+.q .q-ans{grid-column:2 / -1;min-height:40px;resize:none;overflow:hidden;font-family:var(--scripture);font-size:15px;line-height:1.55;background:var(--paper);padding:7px 10px}
+.q .q-ans:placeholder-shown{font-family:var(--ui);font-size:13.5px}
+.q.answered{border-color:color-mix(in srgb,var(--accent) 45%,var(--rule))}
 .q .acts{display:flex;gap:2px}
 .q.child{margin-left:28px}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
@@ -194,6 +239,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
         <select id="sel-ver" aria-label="Version"></select>
         <select id="sel-par" aria-label="Compare with"><option value="">Compare: off</option></select>
         <input type="text" id="goto" placeholder="Go to… e.g. Rom 8:28" aria-label="Go to reference" style="flex:1;min-width:150px">
+        <button class="btn" type="button" id="multi-btn" aria-pressed="false">Select verses</button>
       </div>
       <div class="label" id="read-ver-label">Berean Standard Bible</div>
       <h1 class="ref" id="read-title">John 3</h1>
@@ -237,6 +283,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
     <div id="study-body"></div>
   </aside>
 </div>
+<div class="pickbar" id="pickbar" hidden><span class="n" id="pick-n"></span><button class="btn primary sm" id="pick-add">Add to note</button><button class="btn ghost sm" id="pick-copy">Copy</button><button class="btn ghost sm" id="pick-done">Done</button></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -318,7 +365,7 @@ function parseXref(s){ // "42.3.16" | "42.3.16-18" | "42.3.16-43.1.2"
 }
 
 /* ---------- State ---------- */
-const S={view:"read",ver:"BSB",par:"",b:42,c:3,sel:null,notes:[],activeNote:null,store:null,sample:null,lexWord:null};
+const S={view:"read",ver:"BSB",par:"",b:42,c:3,sel:null,multi:false,picks:new Set(),lastPick:null,notes:[],activeNote:null,store:null,sample:null,lexWord:null};
 try{const p=JSON.parse(localStorage.getItem("scr-pos")||"null");if(p){Object.assign(S,{ver:p.ver||"BSB",b:p.b??42,c:p.c||3,par:p.par||""});}}catch(e){}
 function savePos(){try{localStorage.setItem("scr-pos",JSON.stringify({ver:S.ver,b:S.b,c:S.c,par:S.par}));}catch(e){}}
 const $=s=>document.querySelector(s);
@@ -326,7 +373,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200);}
 
 /* ---------- Views / routing ---------- */
-function show(view){S.view=view;["read","search","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
+function show(view){S.view=view;if(view!=="read"&&S.multi)setMulti(false);["read","search","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
   if(location.hash!=="#"+view)history.replaceState(null,"","#"+view);
   if(view!=="read"&&window.innerWidth<=860)$("#study").classList.add("closed");
   if(view==="notes")renderNotes(); if(view==="read")renderChapter();}
@@ -359,55 +406,106 @@ async function renderChapter(){
   catch(e){el.className="chapter";el.innerHTML=`<p class="notice">${esc(e.message)} Showing BSB instead.</p>`;vs=base[S.b][S.c-1];}
   const lic=[S.ver,S.par].filter(k=>REMOTE.includes(k)&&COPY[k]); $("#read-copy").hidden=!lic.length; $("#read-copy").innerHTML=lic.map(k=>esc(COPY[k])).join("<br>");
   const noted=notedKeys();
-  const vspan=(t,v,i)=>`<span class="v${S.sel&&S.sel.b===S.b&&S.sel.c===S.c&&S.sel.v===v?" sel":""}${noted.has(S.b+"."+S.c+"."+v)?" noted":""}" data-v="${v}" tabindex="0"><sup>${v}</sup>${esc(t)}</span> `;
+  const vspan=(t,v,i)=>`<span class="v${S.sel&&S.sel.b===S.b&&S.sel.c===S.c&&v>=S.sel.v&&v<=(S.sel.v2||S.sel.v)?" sel":""}${S.picks.has(v)?" pick":""}${noted.has(S.b+"."+S.c+"."+v)?" noted":""}" data-v="${v}" tabindex="0"><sup>${v}</sup>${esc(t)}</span> `;
   if(par){el.className="chapter parallel";const pv=par;
     el.innerHTML=`<div class="label colhead">${S.ver}</div><div class="label colhead">${S.par}</div>`+vs.map((t,i)=>`<div class="pv">${vspan(t,i+1)}</div><div class="pv">${vspan(pv[i]||"",i+1)}</div>`).join("");}
   else{el.className="chapter";el.innerHTML=(el.querySelector(".notice")?el.innerHTML:"")+"<p>"+vs.map((t,i)=>t?vspan(t,i+1):"").join("")+"</p>";}
-  savePos();
+  savePos(); paintPicks();
 }
-$("#chapter").addEventListener("click",e=>{const v=e.target.closest(".v");if(v)selectVerse(S.b,S.c,+v.dataset.v);});
+$("#chapter").addEventListener("click",e=>{const el=e.target.closest(".v");if(!el)return;const v=+el.dataset.v;
+  if(S.multi||e.shiftKey||e.metaKey||e.ctrlKey){
+    if(e.shiftKey&&S.lastPick!=null){const a=Math.min(S.lastPick,v),z=Math.max(S.lastPick,v);for(let i=a;i<=z;i++)S.picks.add(i);}
+    else if(S.picks.has(v))S.picks.delete(v); else S.picks.add(v);
+    S.lastPick=v; if(!S.multi)setMulti(true); paintPicks(); return;}
+  S.lastPick=v; selectVerse(S.b,S.c,v);});
+function setMulti(on){S.multi=on;const b=$("#multi-btn");b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);b.textContent=on?"Selecting… tap verses":"Select verses";if(!on){S.picks.clear();}paintPicks();}
+function paintPicks(){document.querySelectorAll("#chapter .v").forEach(x=>x.classList.toggle("pick",S.picks.has(+x.dataset.v)));
+  const n=S.picks.size; $("#pickbar").hidden=!(S.multi&&S.view==="read"); $("#pick-n").textContent=n?`${n} verse${n===1?"":"s"} selected`:"Tap verses to select";
+  $("#pick-add").disabled=!n;$("#pick-copy").disabled=!n;}
+function pickRanges(){const vs=[...S.picks].sort((a,b)=>a-b);const out=[];vs.forEach(v=>{const last=out[out.length-1];if(last&&v===last.v2+1)last.v2=v;else out.push({b:S.b,c:S.c,v1:v,v2:v});});return out;}
+$("#multi-btn").addEventListener("click",()=>setMulti(!S.multi));
+$("#pick-done").addEventListener("click",()=>setMulti(false));
+$("#pick-add").addEventListener("click",async()=>{await addRangesToNote(pickRanges());setMulti(false);});
+$("#pick-copy").addEventListener("click",async()=>{const parts=[];for(const r of pickRanges())parts.push(`${refLabel(r)} — “${await getRange(S.ver,r)}” (${S.ver})`);copyText(parts.join("\n\n"));});
+async function getRange(ver,r){if(LOCAL.includes(ver))return rangeText(await load(ver),r);const ch=await getChapter(ver,r.b,r.c);const a=[];for(let i=r.v1;i<=(r.v2||r.v1);i++)a.push(ch[i-1]||"");return a.join(" ");}
 $("#chapter").addEventListener("keydown",e=>{if(e.key==="Enter"){const v=e.target.closest(".v");if(v)selectVerse(S.b,S.c,+v.dataset.v);}});
-$("#sel-book").addEventListener("change",e=>{S.b=+e.target.value;S.c=1;renderChapter();$("#main").scrollTop=0;});
-$("#sel-chap").addEventListener("change",e=>{S.c=+e.target.value;renderChapter();$("#main").scrollTop=0;});
+$("#sel-book").addEventListener("change",e=>{S.picks.clear();S.b=+e.target.value;S.c=1;renderChapter();$("#main").scrollTop=0;});
+$("#sel-chap").addEventListener("change",e=>{S.picks.clear();S.c=+e.target.value;renderChapter();$("#main").scrollTop=0;});
 $("#sel-ver").addEventListener("change",e=>{S.ver=e.target.value;renderChapter();if(S.sel)renderStudy();});
 $("#sel-par").addEventListener("change",e=>{S.par=e.target.value;renderChapter();});
-async function step(d){const bible=await load("BSB");S.c+=d;if(S.c<1){if(S.b>0){S.b--;S.c=bible[S.b].length;}else S.c=1;}else if(S.c>bible[S.b].length){if(S.b<65){S.b++;S.c=1;}else S.c--;}renderChapter();$("#main").scrollTop=0;}
+async function step(d){const bible=await load("BSB");S.picks.clear();S.c+=d;if(S.c<1){if(S.b>0){S.b--;S.c=bible[S.b].length;}else S.c=1;}else if(S.c>bible[S.b].length){if(S.b<65){S.b++;S.c=1;}else S.c--;}renderChapter();$("#main").scrollTop=0;}
 $("#prev-ch").addEventListener("click",()=>step(-1));$("#next-ch").addEventListener("click",()=>step(1));
 $("#goto").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const r=parseRefs(e.target.value)[0];if(!r){toast("Couldn't read that reference. Try a form like “Rom 8:28”.");return;}e.target.value="";openRef(r);});
-function openRef(r){S.b=r.b;S.c=r.c;show("read");renderChapter().then(()=>{if(r.v1){selectVerse(r.b,r.c,r.v1);const el=document.querySelector(`.v[data-v="${r.v1}"]`);el&&el.scrollIntoView({block:"center"});}});}
+function openRef(r){S.b=r.b;S.c=r.c;show("read");renderChapter().then(()=>{if(r.v1){selectVerse(r.b,r.c,r.v1,r.v2);const el=document.querySelector(`.v[data-v="${r.v1}"]`);el&&el.scrollIntoView({block:"center"});}});}
 
 /* ---------- Study panel ---------- */
-function selectVerse(b,c,v){S.sel={b,c,v};S.lexWord=null;document.querySelectorAll(".v.sel").forEach(x=>x.classList.remove("sel"));document.querySelectorAll(`.v[data-v="${v}"]`).forEach(x=>x.classList.add("sel"));renderStudy();$("#study").classList.remove("closed");}
+function selectVerse(b,c,v,v2){S.sel={b,c,v,v2:v2||v};S.lexWord=null;
+  document.querySelectorAll(".v.sel").forEach(x=>x.classList.remove("sel"));
+  if(b===S.b&&c===S.c)document.querySelectorAll("#chapter .v").forEach(x=>{const n=+x.dataset.v;x.classList.toggle("sel",n>=v&&n<=(v2||v));});
+  renderStudy();$("#study").classList.remove("closed");}
+function clearSelection(){S.sel=null;S.lexWord=null;document.querySelectorAll(".v.sel").forEach(x=>x.classList.remove("sel"));renderStudy();if(window.innerWidth<=860)$("#study").classList.add("closed");}
+async function studyStep(d){ // move to the previous/next verse, crossing chapters and books
+  if(!S.sel)return; const bible=await load("BSB"); let {b,c}=S.sel; let v=d<0?S.sel.v-1:(S.sel.v2||S.sel.v)+1;
+  if(v<1){if(c>1)c--;else if(b>0){b--;c=bible[b].length;}else return; v=bible[b][c-1].length;}
+  else if(v>bible[b][c-1].length){if(c<bible[b].length)c++;else if(b<65){b++;c=1;}else return; v=1;}
+  selectVerse(b,c,v);}
 const stem=w=>{w=w.toLowerCase().replace(/[^a-z]/g,"");return w.replace(/(eth|est|ing|ed|es|s)$/,"")||w;};
 async function renderStudy(){
   const sb=$("#study-body"); if(!S.sel){sb.innerHTML=studyIntro();return;}
-  const {b,c,v}=S.sel; const ref={b,c,v1:v,v2:v};
+  const {b,c,v}=S.sel; const v2=S.sel.v2||v; const ref={b,c,v1:v,v2}; const single=v===v2;
   const bible=await load(LOCAL.includes(S.ver)?S.ver:"BSB"); const xr=await load("xref");
-  const others=await Promise.all(usable().map(k=>getVerse(k,b,c,v).then(t=>[k,t],e=>[k,"(couldn't load: "+e.message+")"])));
-  const text=others.find(o=>o[0]===S.ver)?.[1]||verseText(bible,b,c,v);
+  const chapLen=(bible[b]?.[c-1]||[]).length;
+  const others=await Promise.all(usable().map(k=>getRange(k,ref).then(t=>[k,t],e=>[k,"(couldn't load: "+e.message+")"])));
+  const chap=await getChapter(S.ver,b,c).catch(()=>bible[b][c-1]);
+  const text=chap[v-1]||verseText(bible,b,c,v);
   const xrefs=(xr[b+"."+c+"."+v]||[]).map(parseXref);
-  const key=b+"."+c+"."+v; const related=S.notes.filter(n=>(n.refs||[]).some(r=>refKeys(r).includes(key)||refKeys(r).includes(b+"."+c+".*")));
+  const keys=refKeys(ref); const related=S.notes.filter(n=>(n.refs||[]).some(r=>{const rk=refKeys(r);return rk.includes(b+"."+c+".*")||keys.some(k=>rk.includes(k));}));
   const words=text.split(/(\s+)/).map(w=>/\w/.test(w)?`<button class="word${S.lexWord&&stem(w)===stem(S.lexWord)?" on":""}" data-w="${esc(w.replace(/[^\w'-]/g,""))}">${esc(w)}</button>`:esc(w)).join("");
+  const ctxA=Math.max(1,v-3),ctxZ=Math.min(chapLen,v2+3);
+  const passage=[];for(let i=v;i<=v2;i++)passage.push(`<sup>${i}</sup>${esc(chap[i-1]||verseText(bible,b,c,i))}`);
   sb.innerHTML=`
-  <div class="sec"><div class="sec-head"><div class="label">Selected verse</div><button class="btn ghost sm sheet-close" id="close-sheet">Close</button></div>
+  <div class="sec">
+    <div class="study-nav">
+      <button class="btn sm" id="st-prev" aria-label="Previous verse">‹ Prev</button><button class="btn sm" id="st-next" aria-label="Next verse">Next ›</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost sm" id="st-clear">Clear selection</button>
+    </div>
+    <form class="study-nav" id="st-form" style="margin-top:2px"><input type="text" id="st-ref" placeholder="Look up e.g. Rom 8:28-39" aria-label="Look up a verse"><button class="btn sm">Show</button></form>
+  </div>
+  <div class="sec"><div class="sec-head"><div class="label">${single?"Selected verse":"Selected passage"}</div><span class="sub">${S.ver}</span></div>
     <h2>${refLabel(ref)}</h2>
-    <div class="bar" style="margin:0"><button class="btn primary sm" id="add-to-note">Add to sermon note</button><button class="btn sm" id="copy-verse">Copy</button></div></div>
-  <div class="sec"><div class="label">Word study · tap a word</div><div class="words">${words}</div><div id="lex-out"></div></div>
+    ${single?"":`<div class="passage">${passage.join(" ")}</div>`}
+    <div class="bar" style="margin:0">
+      <button class="btn primary sm" id="add-to-note">Add to sermon note</button><button class="btn sm" id="copy-verse">Copy</button>
+      ${(ctxA<v||ctxZ>v2)?`<button class="btn ghost sm" id="st-context" data-a="${ctxA}" data-z="${ctxZ}">Show more verses</button>`:""}
+      ${(b!==S.b||c!==S.c)?`<button class="btn ghost sm" id="st-open">Open in reader</button>`:""}
+    </div></div>
+  ${single?`<div class="sec"><div class="label">Word study · tap a word</div><div class="words">${words}</div><div id="lex-out"></div></div>`:""}
   <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
-  <div class="sec"><div class="sec-head"><div class="label">Cross-references</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
+  <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
     ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
-  <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this verse yet.</p>'}</div>`;
-  if(S.lexWord)showLex(S.lexWord);
+  <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
+  if(S.lexWord&&single)showLex(S.lexWord);
 }
-function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p></div>`;}
+function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p>
+  <form class="study-nav" id="st-form"><input type="text" id="st-ref" placeholder="Look up e.g. Rom 8:28-39" aria-label="Look up a verse"><button class="btn sm">Show</button></form></div>`;}
+$("#study").addEventListener("submit",e=>{if(e.target.id!=="st-form")return;e.preventDefault();const r=parseRefs($("#st-ref").value)[0];
+  if(!r){toast("Couldn't read that reference. Try a form like “Rom 8:28-30”.");return;}
+  load("BSB").then(bible=>{const len=(bible[r.b]?.[r.c-1]||[]).length;if(!len){toast("That chapter doesn't exist.");return;}
+    const v1=Math.min(r.v1||1,len),v2=Math.min(r.v1?(r.v2||r.v1):len,len);selectVerse(r.b,r.c,v1,Math.max(v1,v2));});});
 $("#study").addEventListener("click",async e=>{
   const t=e.target;
   if(t.closest("#close-sheet")){$("#study").classList.add("closed");return;}
+  if(t.closest("#st-clear")){clearSelection();return;}
+  if(t.closest("#st-prev")){studyStep(-1);return;}
+  if(t.closest("#st-next")){studyStep(1);return;}
+  const cx=t.closest("#st-context"); if(cx){const {b,c}=S.sel;selectVerse(b,c,+cx.dataset.a,+cx.dataset.z);return;}
+  if(t.closest("#st-open")){const {b,c,v,v2}=S.sel;S.b=b;S.c=c;show("read");await renderChapter();selectVerse(b,c,v,v2);document.querySelector(`.v[data-v="${v}"]`)?.scrollIntoView({block:"center"});return;}
   const w=t.closest(".word"); if(w){S.lexWord=w.dataset.w;document.querySelectorAll(".word").forEach(x=>x.classList.toggle("on",stem(x.dataset.w)===stem(S.lexWord)));showLex(S.lexWord);return;}
   const x=t.closest(".xref"); if(x){openRef(JSON.parse(x.dataset.ref));return;}
   const nl=t.closest(".note-link"); if(nl){S.activeNote=nl.dataset.note;show("notes");return;}
-  if(t.closest("#add-to-note"))addSelToNote();
-  if(t.closest("#copy-verse")){const {b,c,v}=S.sel;copyText(`“${await getVerse(S.ver,b,c,v)}” — ${BOOKS[b]} ${c}:${v} (${S.ver})`);}
+  if(t.closest("#add-to-note")){const {b,c,v,v2}=S.sel;addRangesToNote([{b,c,v1:v,v2:v2||v}]);}
+  if(t.closest("#copy-verse")){const {b,c,v,v2}=S.sel;const r={b,c,v1:v,v2:v2||v};copyText(`“${await getRange(S.ver,r)}” — ${refLabel(r)} (${S.ver})`);}
   const lx=t.closest("[data-search]"); if(lx){runSearch(lx.dataset.search);}
 });
 async function showLex(word){
@@ -504,24 +602,65 @@ $("#import-file").addEventListener("change",async e=>{
   e.target.value="";
 });
 function setStoreLabel(){$("#store-dot").classList.add("on");$("#store-label").textContent="Notes saved in this browser";}
+function setSaveState(msg,err){const s=$("#save-state");if(!s)return;s.textContent=msg;s.classList.toggle("err",!!err);}
 function onNotesChanged(){
-  if(S.view==="notes"){renderNoteList();const ed=$("#editor");if(!ed.contains(document.activeElement))renderEditor();else renderSide();}
+  if(S.view==="notes"){renderNoteList();const ed=$("#editor");const ae=document.activeElement;
+    if(!ed.contains(ae))renderEditor(); else if(!(ae&&ae.classList&&ae.classList.contains("q-ans")))renderSide();}
   if(S.view==="read")document.querySelectorAll(".v").forEach(el=>{const k=S.b+"."+S.c+"."+el.dataset.v;el.classList.toggle("noted",notedKeys().has(k));});
 }
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function blankNote(extra){return {id:newId(),title:"",speaker:"",date:new Date().toISOString().slice(0,10),passage:"",body:"",refs:[],questions:[],...extra};}
 function activeNote(){return S.notes.find(n=>n.id===S.activeNote);}
 
-async function addSelToNote(){
-  const {b,c,v}=S.sel; const vt=await getVerse(S.ver,b,c,v).catch(()=>null)||verseText(await load("BSB"),b,c,v); let n=activeNote()||S.notes[0];
-  if(!n){n=blankNote({title:"Notes on "+BOOKS[b]+" "+c,passage:BOOKS[b]+" "+c});}
+async function addRangesToNote(ranges){
+  if(!ranges.length)return; flushSave(); const texts=[];for(const r of ranges)texts.push(await getRange(S.ver,r).catch(async()=>rangeText(await load("BSB"),r))); let n=activeNote()||S.notes[0]; const r0=ranges[0];
+  if(!n){n=blankNote({title:"Notes on "+BOOKS[r0.b]+" "+r0.c,passage:refLabel(r0)});}
   n=JSON.parse(JSON.stringify(n));
-  n.body=(n.body?n.body.replace(/\s*$/,"")+"\n\n":"")+`${BOOKS[b]} ${c}:${v} — “${vt}” (${S.ver})\n`;
-  n.refs=collectRefs(n); S.activeNote=n.id; await store.save(n); toast("Added to “"+(n.title||"Untitled")+"”");
+  const blocks=ranges.map((r,i)=>`<blockquote><b>${esc(refLabel(r))}</b> — “${esc(texts[i])}” <i>(${S.ver})</i></blockquote>`).join("");
+  n.html=noteHtml(n)+blocks+"<p><br></p>"; n.body=htmlToText(n.html);
+  n.refs=collectRefs(n); S.activeNote=n.id; await store.save(n).catch(()=>{});
+  toast(`Added ${ranges.length>1?ranges.length+" passages":refLabel(r0)} to “${n.title||"Untitled"}”`);
 }
-
 /* ---------- Notes UI ---------- */
-function growBody(){const b=$("#n-body");if(!b)return;const y=$("#main").scrollTop;b.style.height="auto";b.style.height=Math.max(b.scrollHeight+4,0)+"px";$("#main").scrollTop=y;}
+function growBody(){}
+const ALLOWED=new Set(["P","DIV","BR","H3","H4","B","STRONG","I","EM","U","MARK","UL","OL","LI","BLOCKQUOTE"]);
+function cleanHtml(html){ // keep only simple formatting tags, no attributes
+  const doc=new DOMParser().parseFromString("<body>"+html+"</body>","text/html");
+  (function walk(node){[...node.childNodes].forEach(ch=>{
+    if(ch.nodeType===3)return; if(ch.nodeType!==1){ch.remove();return;}
+    if(["SCRIPT","STYLE","IFRAME","OBJECT","EMBED","TEMPLATE"].includes(ch.tagName)){ch.remove();return;}
+    walk(ch);
+    if(!ALLOWED.has(ch.tagName)){const frag=document.createDocumentFragment();while(ch.firstChild)frag.appendChild(ch.firstChild);
+      if(/^H[1256]$/.test(ch.tagName)){const h=doc.createElement("h3");h.appendChild(frag);ch.replaceWith(h);}else ch.replaceWith(frag);return;}
+    [...ch.attributes].forEach(a=>ch.removeAttribute(a.name));});})(doc.body);
+  return doc.body.innerHTML;}
+function textToHtml(t){return (t||"").split("\n").map(l=>l.trim()?`<p>${esc(l)}</p>`:"").join("")||"";}
+function noteHtml(n){return n.html!=null?cleanHtml(n.html):textToHtml(n.body);}
+function htmlToText(html){const d=document.createElement("div");d.innerHTML=html;
+  d.querySelectorAll("p,div,h3,h4,li,blockquote,br").forEach(el=>{if(el.tagName==="BR")el.replaceWith("\n");else el.append("\n");});
+  return d.textContent.replace(/\n{3,}/g,"\n\n").trim();}
+const FMT=[["h3","Heading","<b style='font-family:var(--scripture)'>H</b>"],["h4","Subheading","<b style='font-size:12px'>H2</b>"],["p","Normal text","¶"],null,
+  ["bold","Bold (Ctrl+B)","<b>B</b>"],["italic","Italic (Ctrl+I)","<i style='font-family:var(--scripture)'>I</i>"],["underline","Underline (Ctrl+U)","<u>U</u>"],["mark","Highlight","<mark style='padding:0 3px'>A</mark>"],null,
+  ["insertUnorderedList","Bulleted list",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="7" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="5" cy="17" r="1"/><path d="M10 7h10M10 12h10M10 17h10"/></svg>'],
+  ["insertOrderedList","Numbered list",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h2v4M4 10h3M4 14h3l-3 4h3M10 7h10M10 12h10M10 17h10"/></svg>'],
+  ["outdent","Move left",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6h10M10 12h10M10 18h10M7 9l-3 3 3 3"/></svg>'],
+  ["indent","Move right",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6h10M10 12h10M10 18h10M4 9l3 3-3 3"/></svg>'],
+  ["blockquote","Quote / scripture block",'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 17h4l2-4V7H6v6h3zm8 0h4l2-4V7h-6v6h3z"/></svg>'],null,
+  ["removeFormat","Clear formatting","<s>T</s>"]];
+function fmtBar(){return `<div class="fmt" role="toolbar" aria-label="Formatting">${FMT.map(f=>f?`<button type="button" data-cmd="${f[0]}" title="${f[1]}" aria-label="${f[1]}">${f[2]}</button>`:'<span class="sep"></span>').join("")}</div>`;}
+function runFmt(cmd){const ed=$("#n-body");if(!ed)return;ed.focus();
+  if(["h3","h4","p","blockquote"].includes(cmd)){document.execCommand("formatBlock",false,cmd==="blockquote"?"blockquote":cmd);}
+  else if(cmd==="mark"){const sel=getSelection();if(!sel.rangeCount||sel.isCollapsed){toast("Select some text to highlight");return;}
+    const inMark=sel.anchorNode&&sel.anchorNode.parentElement&&sel.anchorNode.parentElement.closest("mark");
+    if(inMark){inMark.replaceWith(...inMark.childNodes);}else{const m=document.createElement("mark");const r=sel.getRangeAt(0);m.appendChild(r.extractContents());r.insertNode(m);}}
+  else if(cmd==="removeFormat"){document.execCommand("removeFormat");document.execCommand("formatBlock",false,"p");}
+  else document.execCommand(cmd);
+  ed.dispatchEvent(new Event("input",{bubbles:true}));}
+$("#editor").addEventListener("mousedown",e=>{if(e.target.closest(".fmt button"))e.preventDefault();});
+$("#editor").addEventListener("paste",e=>{if(e.target.closest&&e.target.closest("#n-body")){e.preventDefault();const cd=e.clipboardData;
+  const h=cd.getData("text/html");document.execCommand("insertHTML",false,h?cleanHtml(h):textToHtml(cd.getData("text/plain")));}});
+$("#editor").addEventListener("keydown",e=>{if(!e.target.closest||!e.target.closest("#n-body"))return;
+  if(e.key==="Tab"){e.preventDefault();document.execCommand(e.shiftKey?"outdent":"indent");}});
 try{if(localStorage.getItem("scr-focus"))document.querySelector(".notes-wrap").classList.add("focus");}catch(x){}
 function renderNotes(){renderNoteList();renderEditor();}
 function renderNoteList(){
@@ -546,18 +685,31 @@ function renderEditor(){
       <label><span class="label">Date</span><input type="date" id="n-date" value="${esc(n.date)}"></label>
       <label><span class="label">Main passage</span><input type="text" id="n-passage" value="${esc(n.passage)}" placeholder="e.g. John 15:1-11"></label>
     </div>
-    <textarea class="body-in" id="n-body" placeholder="Main points, quotes, illustrations, verses as they're read…">${esc(n.body)}</textarea>
-    <div class="bar" style="justify-content:space-between;margin:0"><span class="save-state" id="save-state">${n.example?"Example note · edit or delete it anytime":"Saved"}</span><span><button class="btn ghost sm" id="focus-note">${document.querySelector(".notes-wrap")?.classList.contains("focus")?"Show notes list":"Focus: wider writing space"}</button><button class="btn ghost sm" id="del-note">Delete note</button></span></div>
+    <div>${fmtBar()}<div class="body-in" id="n-body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Sermon notes" data-placeholder="Main points, quotes, illustrations, verses as they're read…">${noteHtml(n)}</div></div>
+    <div class="bar" style="justify-content:space-between;margin:0"><span class="save-state" id="save-state">${n.example?"Example note · edit or delete it anytime":"Saved"}</span><span><button class="btn sm" id="export-btn" aria-expanded="false">Share / Export</button><button class="btn ghost sm" id="focus-note">${document.querySelector(".notes-wrap")?.classList.contains("focus")?"Show notes list":"Focus: wider writing space"}</button><button class="btn ghost sm" id="del-note">Delete note</button></span></div>
+    <div class="export" id="export-panel" hidden>
+      <div class="sec-head"><div class="label">Save a copy to send to others</div><label class="sub" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="exp-q" checked> Include discussion questions</label></div>
+      <div class="opts">
+        <button class="btn" data-exp="docx">Word<small>.docx file</small></button>
+        <button class="btn" data-exp="pdf">PDF<small>ready to print or email</small></button>
+      </div>
+      <div class="sub">For a Google Doc, save as Word and open the file in Google Drive. It converts automatically.</div>
+      <div class="sub" id="exp-status" aria-live="polite"></div>
+    </div>
     <div id="note-side"></div>`;
   growBody(); renderSide();
 }
 let saveT=null,pending=null;
-function flushSave(){if(pending){clearTimeout(saveT);const n=pending;pending=null;store.save(n);}}
+function flushSave(){if(pending){clearTimeout(saveT);const n=pending;pending=null;store.save(JSON.parse(JSON.stringify(n))).catch(()=>{});}}
+window.addEventListener("pagehide",flushSave);document.addEventListener("visibilitychange",()=>{if(document.hidden)flushSave();});
 $("#editor").addEventListener("input",e=>{
-  const n=activeNote(); if(!n)return; const m={"n-title":"title","n-speaker":"speaker","n-date":"date","n-passage":"passage","n-body":"body"}[e.target.id]; if(!m)return;
-  if(m==="body")growBody();
-  n[m]=e.target.value; const before=JSON.stringify(n.refs||[]); n.refs=collectRefs(n); $("#save-state").textContent="Editing…";
-  pending=n; clearTimeout(saveT); saveT=setTimeout(()=>{pending=null;store.save(JSON.parse(JSON.stringify(n))).then(()=>{const s=$("#save-state");if(s)s.textContent="Saved";});},800);
+  if(e.target.classList&&e.target.classList.contains("q-ans")){const n=activeNote();if(!n)return;const box=e.target;const q=(n.questions||[]).find(x=>x.id===box.closest(".q").dataset.qid);if(!q)return;
+    q.answer=box.value; box.style.height="auto"; box.style.height=box.scrollHeight+2+"px"; box.closest(".q").classList.toggle("answered",!!box.value.trim());
+    setSaveState("Editing…"); pending=n; clearTimeout(saveT); saveT=setTimeout(()=>{pending=null;store.save(JSON.parse(JSON.stringify(n))).then(()=>setSaveState("Saved"),()=>{});},500); return;}
+  const n=activeNote(); if(!n)return; const tgt=e.target.closest?e.target.closest("#n-body")||e.target:e.target;
+  const m={"n-title":"title","n-speaker":"speaker","n-date":"date","n-passage":"passage","n-body":"body"}[tgt.id]; if(!m)return;
+  if(m==="body"){n.html=cleanHtml(tgt.innerHTML);n.body=htmlToText(n.html);} else n[m]=tgt.value; const before=JSON.stringify(n.refs||[]); n.refs=collectRefs(n); $("#save-state").textContent="Editing…";
+  pending=n; clearTimeout(saveT); saveT=setTimeout(()=>{pending=null;store.save(JSON.parse(JSON.stringify(n))).then(()=>setSaveState("Saved"),()=>{});},500);
   if(m==="title"){const it=document.querySelector(`.note-item[data-id="${n.id}"] .tt`);if(it)it.textContent=n.title||"Untitled";}
   if(before!==JSON.stringify(n.refs))renderSide();
 });
@@ -565,14 +717,19 @@ $("#editor").addEventListener("click",async e=>{
   const t=e.target;
   if(t.id==="first-note"){$("#new-note").click();return;}
   if(t.id==="example-note"){const n=exampleNote();S.activeNote=n.id;await store.save(n);renderNotes();return;}
+  const fb=t.closest(".fmt button"); if(fb){runFmt(fb.dataset.cmd);return;}
+  if(t.id==="export-btn"){const pnl=$("#export-panel");pnl.hidden=!pnl.hidden;t.setAttribute("aria-expanded",!pnl.hidden);return;}
+  const ex=t.closest("[data-exp]"); if(ex){exportNote(ex.dataset.exp,ex);return;}
   if(t.id==="focus-note"){const w=$(".notes-wrap");w.classList.toggle("focus");t.textContent=w.classList.contains("focus")?"Show notes list":"Focus: wider writing space";try{localStorage.setItem("scr-focus",w.classList.contains("focus")?"1":"");}catch(x){}growBody();return;}
   if(t.id==="del-note"){if(t.dataset.confirm){const id=S.activeNote;S.activeNote=null;await store.remove(id);renderNotes();toast("Note deleted");}else{t.dataset.confirm="1";t.textContent="Tap again to delete";setTimeout(()=>{if(t.isConnected){delete t.dataset.confirm;t.textContent="Delete note";}},3000);}return;}
   const chip=t.closest(".chip[data-ref]"); if(chip){openRef(JSON.parse(chip.dataset.ref));return;}
   const nl=t.closest(".note-link"); if(nl){flushSave();S.activeNote=nl.dataset.note;renderNotes();return;}
   if(t.closest("#cancel-q")){qAbort&&qAbort.abort();return;}
-  if(t.closest("#build-q")){buildQuestions();return;}
+  const bq=t.closest("#build-q"); if(bq){const n=activeNote();const answered=(n.questions||[]).filter(q=>q.answer&&q.answer.trim()).length;
+    if(answered&&!bq.dataset.confirm){bq.dataset.confirm="1";bq.textContent=`Replace ${answered} answered question${answered===1?"":"s"}? Tap again`;setTimeout(()=>{if(bq.isConnected){delete bq.dataset.confirm;bq.textContent="Build a fresh set";}},4000);return;}
+    buildQuestions();return;}
   if(t.closest("#copy-q")){copyQuestions();return;}
-  if(t.closest("#clear-q")){const n=activeNote();n.questions=[];store.save(JSON.parse(JSON.stringify(n)));renderSide();return;}
+  if(t.closest("#clear-q")){const n=activeNote();n.questions=[];store.save(JSON.parse(JSON.stringify(n))).catch(()=>{});renderSide();return;}
   const qa=t.closest("[data-qact]"); if(qa){questionAction(qa.dataset.qact,qa.closest(".q").dataset.qid);return;}
 });
 $("#editor").addEventListener("change",e=>{if(e.target.matches(".q input[type=checkbox]")){questionAction("toggle",e.target.closest(".q").dataset.qid);}});
@@ -592,8 +749,10 @@ async function renderSide(){
       <div><button class="btn primary" id="build-q" ${(n.body||"").trim().length<20&&!refs.length?"disabled":""}>${qs.length?"Build a fresh set":"Build questions"}</button> <span id="q-status" class="sub"></span></div>
       ${kinds.map(k=>`<div class="qgroup"><h4>${esc(k)}</h4>${qs.filter(q=>q.kind===k).map(qHtml).join("")}</div>`).join("")}
     </div>`;
+  sizeAnswers();
 }
-function qHtml(q){return `<div class="q${q.done?" done":""}${q.parent?" child":""}" data-qid="${q.id}"><input type="checkbox" ${q.done?"checked":""} aria-label="Mark discussed"><div class="qt">${esc(q.text)}</div><div class="acts"><button class="btn ghost sm" data-qact="deeper" title="Generate follow-up questions">Go deeper</button><button class="btn ghost sm" data-qact="del" aria-label="Remove question">✕</button></div></div>`;}
+function qHtml(q){return `<div class="q${q.done?" done":""}${q.parent?" child":""}${q.answer&&q.answer.trim()?" answered":""}" data-qid="${q.id}"><input type="checkbox" ${q.done?"checked":""} aria-label="Mark discussed"><div class="qt">${esc(q.text)}</div><div class="acts"><button class="btn ghost sm" data-qact="deeper" title="Generate follow-up questions">Go deeper</button><button class="btn ghost sm" data-qact="del" aria-label="Remove question">✕</button></div><textarea class="q-ans" rows="1" aria-label="Your answer" placeholder="Your answer, or what the group said…">${esc(q.answer||"")}</textarea></div>`;}
+function sizeAnswers(){document.querySelectorAll(".q-ans").forEach(t=>{t.style.height="auto";t.style.height=t.scrollHeight+2+"px";});}
 
 async function connections(n){
   const xr=await load("xref"); const mine=new Set(),chaps=new Set(),xt=new Set();
@@ -684,6 +843,131 @@ function copyQuestions(){const n=activeNote();const kinds=[...new Set(n.question
 function copyText(txt){navigator.clipboard?.writeText(txt).then(()=>toast("Copied"),()=>fallbackCopy(txt))??fallbackCopy(txt);}
 function fallbackCopy(txt){const ta=document.createElement("textarea");ta.value=txt;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("Copied");}catch(e){toast("Select the text and copy it manually");}ta.remove();}
 
+/* ---------- Export: Word, PDF, Google Doc ---------- */
+const LIBS={jszip:["https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",()=>window.JSZip],jspdf:["https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",()=>window.jspdf&&window.jspdf.jsPDF]};
+const libLoads={};
+function loadLib(k){const [url,get]=LIBS[k];if(get())return Promise.resolve(get());
+  return libLoads[k]||(libLoads[k]=new Promise((res,rej)=>{const sc=document.createElement("script");sc.src=url;sc.onload=()=>get()?res(get()):rej(new Error("library didn't load"));sc.onerror=()=>{delete libLoads[k];rej(new Error("couldn't load the "+k+" library"));};document.head.appendChild(sc);}));}
+function exportFileBase(n){return ((n.title||"Sermon notes").replace(/[\\/:*?"<>|]+/g,"").trim()||"Sermon notes")+(n.date?" "+n.date:"");}
+function metaLine(n){return [n.speaker,n.date&&new Date(n.date+"T12:00").toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"}),n.passage].filter(Boolean).join(" · ");}
+// Turn the note into simple blocks: {kind:title|meta|h1|h2|p|li|quote, runs:[{t,b,i,u,m}], level, marker}
+function noteBlocks(n,withQ){
+  const out=[{kind:"title",runs:[{t:n.title||"Sermon notes"}]}]; const ml=metaLine(n); if(ml)out.push({kind:"meta",runs:[{t:ml}]});
+  const root=document.createElement("div"); root.innerHTML=noteHtml(n);
+  function runsOf(node,st,acc){node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){const t=ch.textContent.replace(/\s+/g," ");if(t)acc.push({t,...st});return;}
+      if(ch.nodeType!==1)return; const tg=ch.tagName;
+      if(tg==="BR"){acc.push({t:"\n",...st});return;}
+      if(["UL","OL","P","DIV","H3","H4","BLOCKQUOTE","LI"].includes(tg))return; // handled as blocks
+      runsOf(ch,{...st,b:st.b||tg==="B"||tg==="STRONG",i:st.i||tg==="I"||tg==="EM",u:st.u||tg==="U",m:st.m||tg==="MARK"},acc);});return acc;}
+  function trim(r){if(r.length){r[0].t=r[0].t.replace(/^\s+/,"");r[r.length-1].t=r[r.length-1].t.replace(/\s+$/,"");}return r.filter(x=>x.t);}
+  function walk(node,ctx){let inline=[];const flush=()=>{const r=trim(inline);if(r.length)out.push({kind:ctx.quote?"quote":"p",runs:r,level:ctx.level});inline=[];};
+    node.childNodes.forEach(ch=>{const tg=ch.nodeType===1?ch.tagName:"";
+      if(tg==="H3"||tg==="H4"){flush();const r=trim(runsOf(ch,{},[]));if(r.length)out.push({kind:tg==="H3"?"h1":"h2",runs:r});}
+      else if(tg==="UL"||tg==="OL"){flush();let i=0;ch.childNodes.forEach(li=>{if(li.nodeType!==1)return;i++;
+          const r=trim(runsOf(li,{},[]));if(r.length)out.push({kind:"li",runs:r,level:(ctx.level||0)+1,marker:tg==="OL"?i+".":"•"});
+          li.querySelectorAll(":scope>ul,:scope>ol").forEach(sub=>walk({childNodes:[sub]},{...ctx,level:(ctx.level||0)+1}));});}
+      else if(tg==="BLOCKQUOTE"){flush();walk(ch,{...ctx,quote:true});}
+      else if(tg==="P"||tg==="DIV"){flush();if([...ch.childNodes].some(c=>c.nodeType===1&&["P","DIV","UL","OL","H3","H4","BLOCKQUOTE"].includes(c.tagName)))walk(ch,ctx);else{const r=trim(runsOf(ch,{},[]));if(r.length)out.push({kind:ctx.quote?"quote":"p",runs:r,level:ctx.level});}}
+      else{runsOf({childNodes:[ch]},{},inline);}});
+    flush();}
+  walk(root,{});
+  if(withQ&&(n.questions||[]).length){out.push({kind:"h1",runs:[{t:"Discussion questions"}]});
+    [...new Set(n.questions.map(q=>q.kind))].forEach(k=>{out.push({kind:"h2",runs:[{t:k}]});let i=0;
+      n.questions.filter(q=>q.kind===k).forEach(q=>{if(!q.parent)i++;out.push({kind:"li",runs:[{t:q.text}],level:q.parent?2:1,marker:q.parent?"–":i+"."});
+        if(q.answer&&q.answer.trim())out.push({kind:"p",runs:[{t:"Answer: ",b:true},{t:q.answer.trim(),i:true}],level:q.parent?3:2});});});}
+  return out;}
+const xmlEsc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function buildDocx(n,withQ){
+  const JSZip=await loadLib("jszip"); const blocks=noteBlocks(n,withQ);
+  const run=r=>r.t.split("\n").map((part,i)=>(i?'<w:r><w:br/></w:r>':"")+(part?`<w:r><w:rPr>${r.b?"<w:b/>":""}${r.i?"<w:i/>":""}${r.u?'<w:u w:val="single"/>':""}${r.m?'<w:highlight w:val="yellow"/>':""}</w:rPr><w:t xml:space="preserve">${xmlEsc(part)}</w:t></w:r>`:"")).join("");
+  const body=blocks.map(bk=>{const runs=bk.runs.map(run).join("");
+    if(bk.kind==="title")return `<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>${runs}</w:p>`;
+    if(bk.kind==="meta")return `<w:p><w:pPr><w:pStyle w:val="Subtitle"/></w:pPr>${runs}</w:p>`;
+    if(bk.kind==="h1")return `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>${runs}</w:p>`;
+    if(bk.kind==="h2")return `<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>${runs}</w:p>`;
+    if(bk.kind==="li"){const ind=360*bk.level+360;return `<w:p><w:pPr><w:ind w:left="${ind}" w:hanging="360"/><w:spacing w:after="60"/></w:pPr><w:r><w:t xml:space="preserve">${xmlEsc(bk.marker)}\t</w:t></w:r>${runs}</w:p>`;}
+    if(bk.kind==="quote")return `<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>${runs}</w:p>`;
+    return `<w:p>${bk.level?`<w:pPr><w:ind w:left="${360*bk.level}"/></w:pPr>`:""}${runs}</w:p>`;}).join("");
+  const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1260" w:right="1260" w:bottom="1260" w:left="1260" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:cs="Georgia"/><w:sz w:val="23"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="140" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="60"/></w:pPr><w:rPr><w:b/><w:sz w:val="44"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Subtitle"><w:name w:val="Subtitle"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="320"/></w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:color w:val="5D6862"/><w:sz w:val="20"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="320" w:after="100"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="30"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="220" w:after="80"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:color w:val="2A5B4D"/><w:sz w:val="22"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:pPr><w:pBdr><w:left w:val="single" w:sz="18" w:space="10" w:color="A1281F"/></w:pBdr><w:ind w:left="360"/></w:pPr></w:style>
+</w:styles>`;
+  const z=new JSZip();
+  z.file("[Content_Types].xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
+  z.file("_rels/.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+  z.file("word/_rels/document.xml.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  z.file("word/document.xml",doc); z.file("word/styles.xml",styles);
+  return z.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});}
+async function buildPdf(n,withQ){
+  const jsPDF=await loadLib("jspdf"); const pdf=new jsPDF({unit:"pt",format:"letter"}); const W=612,H=792,M=60,maxW=W-2*M; let y=M;
+  const clean=t=>t.replace(/[^\x09\x0A\x20-\x7E -ÿ–—‘’“”•…]/g,"");
+  const newPage=()=>{pdf.addPage();y=M;};
+  function para(bk){
+    const spec={title:{f:"times",sz:22,lh:27,after:6,bold:1},meta:{f:"helvetica",sz:10,lh:14,after:18,color:[93,104,98]},h1:{f:"times",sz:15,lh:20,before:14,after:4,bold:1},h2:{f:"helvetica",sz:10.5,lh:15,before:8,after:3,bold:1,color:[42,91,77]},p:{f:"times",sz:11.5,lh:16,after:7},li:{f:"times",sz:11.5,lh:16,after:3},quote:{f:"times",sz:11.5,lh:16,after:8}}[bk.kind];
+    const indent=bk.kind==="li"?18*bk.level+4:bk.kind==="quote"?16:(bk.level?18*bk.level:0); const x0=M+indent, width=maxW-indent;
+    y+=spec.before||0; if(y+spec.lh>H-M)newPage();
+    const startY=y; pdf.setTextColor(...(spec.color||[29,35,32]));
+    if(bk.marker){pdf.setFont(spec.f,"normal");pdf.setFontSize(spec.sz);pdf.text(clean(bk.marker),x0-14,y+spec.sz);}
+    let x=x0;
+    const words=[];bk.runs.forEach(r=>clean(r.t).split(/(\n| +)/).forEach(w=>{if(w)words.push({w,r});}));
+    words.forEach(({w,r})=>{
+      if(w==="\n"){x=x0;y+=spec.lh;return;}
+      const style=(spec.bold||r.b)&&r.i?"bolditalic":(spec.bold||r.b)?"bold":r.i?"italic":"normal";
+      pdf.setFont(spec.f,style);pdf.setFontSize(spec.sz); const ww=pdf.getTextWidth(w);
+      if(/^ +$/.test(w)){if(x>x0)x+=ww;return;}
+      if(x+ww>x0+width&&x>x0){x=x0;y+=spec.lh;}
+      if(y+spec.lh>H-M){newPage();}
+      if(r.m){pdf.setFillColor(243,227,166);pdf.rect(x-1,y+2,ww+2,spec.lh-2,"F");}
+      pdf.text(w,x,y+spec.sz);
+      if(r.u){pdf.setDrawColor(29,35,32);pdf.setLineWidth(.5);pdf.line(x,y+spec.sz+2,x+ww,y+spec.sz+2);}
+      x+=ww;});
+    y+=spec.lh;
+    if(bk.kind==="quote"&&y>startY){pdf.setDrawColor(161,40,31);pdf.setLineWidth(2);pdf.line(M+4,startY+2,M+4,y-2);}
+    y+=spec.after;}
+  noteBlocks(n,withQ).forEach(para);
+  const pages=pdf.getNumberOfPages();for(let i=1;i<=pages;i++){pdf.setPage(i);pdf.setFont("helvetica","normal");pdf.setFontSize(8.5);pdf.setTextColor(150,150,150);pdf.text(`${clean(n.title||"Sermon notes")} · ${i} of ${pages}`,W/2,H-28,{align:"center"});}
+  return pdf.output("blob");}
+function gdocHtml(n,withQ){
+  const qs=withQ&&(n.questions||[]).length?`<h1>Discussion questions</h1>`+[...new Set(n.questions.map(q=>q.kind))].map(k=>`<h2>${esc(k)}</h2><ol>${n.questions.filter(q=>q.kind===k&&!q.parent).map(q=>`<li>${esc(q.text)}${q.answer&&q.answer.trim()?`<p><b>Answer:</b> <i>${esc(q.answer.trim())}</i></p>`:""}${(()=>{const kids=n.questions.filter(c=>c.parent===q.id);return kids.length?`<ul>${kids.map(c=>`<li>${esc(c.text)}${c.answer&&c.answer.trim()?`<p><b>Answer:</b> <i>${esc(c.answer.trim())}</i></p>`:""}</li>`).join("")}</ul>`:"";})()}</li>`).join("")}</ol>`).join(""):"";
+  const body=noteHtml(n).replace(/<h3>/g,"<h1>").replace(/<\/h3>/g,"</h1>").replace(/<h4>/g,"<h2>").replace(/<\/h4>/g,"</h2>").replace(/<blockquote>/g,'<blockquote style="border-left:3px solid #A1281F;margin-left:0;padding-left:12px">').replace(/<mark>/g,'<span style="background-color:#F3E3A6">').replace(/<\/mark>/g,"</span>");
+  return `<html><head><meta charset="utf-8"><title>${esc(n.title||"Sermon notes")}</title></head><body><p class="title" style="font-size:24pt;font-weight:bold">${esc(n.title||"Sermon notes")}</p>${metaLine(n)?`<p style="color:#5D6862">${esc(metaLine(n))}</p>`:""}${body}${qs}</body></html>`;}
+function findLink(payload){let id=null,link=null;(function scan(o,d){if(!o||typeof o!=="object"||d>4)return;for(const [k,v] of Object.entries(o)){
+    if(typeof v==="string"){if(!link&&/^(webViewLink|alternateLink|url|link|htmlLink)$/i.test(k)&&/^https:\/\//.test(v))link=v;if(!id&&k==="id"&&/^[\w-]{20,}$/.test(v))id=v;}
+    else scan(v,d+1);}})(payload,0);
+  if(!link&&typeof payload==="string"){const m=payload.match(/https:\/\/docs\.google\.com\/\S+?(?=["'\s)]|$)/);if(m)link=m[0];const mi=payload.match(/"id"\s*:\s*"([\w-]{20,})"/);if(!id&&mi)id=mi[1];}
+  return link||(id?`https://docs.google.com/document/d/${id}/edit`:null);}
+async function saveFile(filename,blob){
+  let dl=null;try{dl=await window.claude?.use("downloads");}catch(e){}
+  if(dl){await dl.save({filename,data:blob});return true;}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return true;}catch(e){return false;}}
+async function exportNote(kind,btn){
+  flushSave(); const n=activeNote(); if(!n)return; const withQ=$("#exp-q").checked; const st=$("#exp-status"); const label=btn.firstChild.textContent;
+  document.querySelectorAll("[data-exp]").forEach(b=>b.disabled=true); st.innerHTML=`<span class="spinner"></span> Making your ${label}…`;
+  try{
+    if(kind==="docx"){const blob=await buildDocx(n,withQ);await saveFile(exportFileBase(n)+".docx",blob);st.textContent="Word file ready. Check your downloads.";}
+    else if(kind==="pdf"){const blob=await buildPdf(n,withQ);await saveFile(exportFileBase(n)+".pdf",blob);st.textContent="PDF ready. Check your downloads.";}
+    else{
+      const mcp=await window.claude?.use("mcp"); if(!mcp)throw {message:"Google Docs isn't available in this view. Save as Word instead; Google Drive opens Word files as Google Docs."};
+      const res=await mcp.callTool("Google Drive","create_file",{title:exportFileBase(n),textContent:gdocHtml(n,withQ),contentMimeType:"text/html"});
+      const link=findLink(res.payload??res.content?.map(c=>c.text).join("\n"));
+      st.innerHTML=link?`Google Doc created. <a href="${esc(link)}" target="_blank" rel="noopener">Open it in Google Docs</a> and use Share to send it.`:"Google Doc created in your Google Drive (look for “"+esc(exportFileBase(n))+"”).";
+    }
+  }catch(e){
+    const code=e&&e.code;
+    st.textContent=code==="declined"?"Download cancelled.":
+      code==="server_not_connected"?"Google Drive isn't connected. Add it in claude.ai Settings → Connectors, then try again.":
+      code==="not_in_manifest"||code==="approval_required"?"Google Drive wasn't allowed for this page. Allow it when asked, or use Word instead.":
+      code==="needs_reauth"?"Google Drive needs to be reconnected in claude.ai Settings → Connectors.":
+      (e&&e.message?e.message:"Something went wrong.")+(kind==="gdoc"?"":" Try again.");
+  }finally{document.querySelectorAll("[data-exp]").forEach(b=>b.disabled=false);}
+}
 function exampleNote(){return blankNote({example:true,title:"The Vine and the Branches (example)",speaker:"Example sermon",passage:"John 15:1-11",
   body:`Big idea: Fruitfulness is the result of abiding, not striving.
 

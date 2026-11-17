@@ -15,6 +15,17 @@ A Bible study and sermon-notes app: read and compare translations, look up cross
 
 Notes are saved in the browser you write them in. Use **Back up notes** regularly, and **Restore from backup** to move them to another device.
 
+Other features: a formatting toolbar for notes, selecting several verses at once to add to a note, a verse panel with previous/next and passage look-up, answer boxes under each discussion question, and **Share / Export** to save a note as Word (.docx) or PDF.
+
+## Install it like an app
+
+Once deployed, open your site and:
+- **iPhone/iPad (Safari):** tap Share, then **Add to Home Screen**.
+- **Android (Chrome):** tap the ⋮ menu, then **Install app** or **Add to Home screen**.
+- **Computer (Chrome or Edge):** click the install icon in the address bar.
+
+It opens in its own window with the Scriptorium icon.
+
 ## Set up (about 15 minutes)
 
 ### 1. Get the API keys
