@@ -764,10 +764,10 @@ function showWho(view,arg){
     <p class="fine">Your notes stay on this device only. With a password, they're encrypted, so other people using this device can't open them. Without one, anyone using this device can open your profile.</p>`;
     $("#who-pw").addEventListener("input",e=>{$("#who-pw2-l").hidden=!e.target.value;});
     setTimeout(()=>$("#who-name")?.focus(),30);return;}
-  if(view==="signin"){
+  if(view==="signin"){ S.syncMode="signin";
     el.innerHTML=`<div class="tag">Scriptorium</div><h1>Sign in</h1><div class="box sync-box" id="sync-box">${syncBoxHtml()}</div>
-      <p class="fine">After you open the link, your notes from your other devices appear here, in a profile with your name.</p>
-      <div class="row"><button class="btn ghost" type="button" data-who="list">Back</button></div>`;setTimeout(()=>$("#sync-email")?.focus(),30);return;}
+      <p class="fine">Once you sign in, your notes from your other devices appear here, in a profile with your username.</p>
+      <div class="row"><button class="btn ghost" type="button" data-who="list">Back</button></div>`;setTimeout(()=>$("#sync-user")?.focus(),30);return;}
   if(view==="manage"&&cur){
     el.innerHTML=`<div class="tag">Signed in as</div><h1>${esc(cur.name)}</h1>
     <div class="box sync-box" id="sync-box">${syncBoxHtml()}</div>
@@ -1267,7 +1267,7 @@ function aboutHtml(){
   </dl>
   <h2>Design and software</h2><dl>
   ${row("Fonts",`Literata and Hanken Grotesk, SIL Open Font License, via Google Fonts. ${L("https://fonts.google.com")}`)}
-  ${row("Sync",`Supabase, for optional sign-in by email link and syncing notes across devices. The Supabase JavaScript library is MIT licensed. ${L("https://supabase.com")}`)}
+  ${row("Sync",`Supabase, for optional sync accounts (username and password, no email) that keep notes in step across devices. The Supabase JavaScript library is MIT licensed. ${L("https://supabase.com")}`)}
   ${row("Word and PDF export",`JSZip and jsPDF, both MIT licensed. ${L("https://stuk.github.io/jszip/","jszip")} · ${L("https://github.com/parallax/jsPDF","jsPDF")}`)}
   </dl>
   <h2>Your notes</h2>
@@ -1279,6 +1279,9 @@ $("#about-btn").addEventListener("click",showAbout);
 /* ---------- Sync across devices (Supabase, sign in with an email link) ---------- */
 const SB_URL="https://flxsbmrwameevpoqcenc.supabase.co", SB_KEY="sb_publishable_GZBykj0hkTSrqBudbljnYA_zpW7OcDD";
 const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY,{auth:{flowType:"implicit",detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,storageKey:"scr-sb-auth"}}):null;
+const SYNC_DOMAIN="users.scriptorium.app";
+const toAcct=u=>u.trim().toLowerCase()+"@"+SYNC_DOMAIN;
+const userOf=email=>(email||"").endsWith("@"+SYNC_DOMAIN)?email.slice(0,-(SYNC_DOMAIN.length+1)):(email||"");
 const sync={
   user:null, chan:null, timer:null, busy:false, lastAt:null, err:"",
   qKey(){return "scr-syncq-"+(store.profile?store.profile.id:"");},
@@ -1296,7 +1299,7 @@ const sync={
   async onSignedIn(){
     if(!this.user)return;
     if(!store.profile){ // new device: make a profile for this person
-      const name=(this.user.email||"Me").split("@")[0].replace(/[._-]+/g," ").replace(/\b\w/g,c=>c.toUpperCase()).slice(0,40)||"Me";
+      const name=userOf(this.user.email).replace(/[._-]+/g," ").replace(/\b\w/g,c=>c.toUpperCase()).slice(0,40)||"Me";
       const existing=profiles().find(x=>x.syncUser===this.user.id&&!x.salt);
       const pr=existing||{id:newId(),name,created:Date.now(),syncUser:this.user.id,syncEmail:this.user.email,tourDone:false};
       if(!existing)saveProfiles([...profiles(),pr]);
@@ -1352,9 +1355,10 @@ const sync={
     this.chan=sb.channel("notes-"+uid).on("postgres_changes",{event:"*",schema:"public",table:"notes",filter:"user_id=eq."+uid},pl=>{
       const r=pl.new&&pl.new.id?pl.new:null;if(r){this.merge([r]);if(r.synced_at)updateProfile({syncSince:r.synced_at});this.lastAt=new Date();paintSync();}}).subscribe();},
   stopLive(){if(this.chan){sb.removeChannel(this.chan);this.chan=null;}},
-  async sendLink(email){
-    const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});
-    if(error)throw error;},
+  async create(user,pw){const {data,error}=await sb.auth.signUp({email:toAcct(user),password:pw});if(error)throw error;
+    if(!data.session)throw new Error("needs_confirm");},
+  async signIn(user,pw){const {error}=await sb.auth.signInWithPassword({email:toAcct(user),password:pw});if(error)throw error;},
+  async changePw(pw){const {error}=await sb.auth.updateUser({password:pw});if(error)throw error;},
   async stop(){ // stop syncing this profile on this device; notes stay here and in the cloud
     this.stopLive(); if(store.profile)updateProfile({syncUser:null,syncEmail:null,syncSince:null});
     if(sb)await sb.auth.signOut({scope:"local"}); this.user=null; paintSync();}
@@ -1368,31 +1372,54 @@ function syncBoxHtml(){
   const pr=store.profile;
   if(sync.linked()){const t=sync.lastAt?sync.lastAt.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}):"";
     return `<b>Sync across your devices</b>
-      <div class="state"><span class="sync-dot ${sync.busy?"busy":sync.err?"off":""}"></span><span>${sync.busy?"Syncing…":sync.err?"Not synced: "+esc(sync.err):"Synced as "+esc(sync.user.email)+(t?" · "+t:"")}</span></div>
-      <span class="fine">Sign in with ${esc(sync.user.email)} on your other devices to see the same notes there.${pr&&pr.salt?" Your password still locks notes on this device; the synced copy is protected by your sign-in.":""}</span>
-      <div class="row"><button class="btn sm" type="button" id="sync-now">Sync now</button><button class="btn ghost sm" type="button" id="sync-stop">Stop syncing on this device</button></div>`;}
+      <div class="state"><span class="sync-dot ${sync.busy?"busy":sync.err?"off":""}"></span><span>${sync.busy?"Syncing…":sync.err?"Not synced: "+esc(sync.err):"Synced as <b>"+esc(userOf(sync.user.email))+"</b>"+(t?" · "+t:"")}</span></div>
+      <span class="fine">On your other devices, choose Sign in with the username <b>${esc(userOf(sync.user.email))}</b> and your sync password.${pr&&pr.salt?" Your profile password still locks notes on this device; the synced copy is protected by your sync sign-in.":""}</span>
+      <div class="row"><button class="btn sm" type="button" id="sync-now">Sync now</button><button class="btn ghost sm" type="button" id="sync-pw">Change sync password</button><button class="btn ghost sm" type="button" id="sync-stop">Stop syncing on this device</button></div>
+      <form id="sync-pw-form" class="row" hidden style="border:0;padding:0;background:none"><input type="password" id="sync-newpw" minlength="6" required placeholder="New sync password" autocomplete="new-password" style="flex:1;min-width:180px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)"><button class="btn sm">Save</button></form>
+      <span class="fine" id="sync-msg" aria-live="polite"></span>`;}
   if(sync.user&&pr&&pr.syncUser!==sync.user.id){const other=profiles().find(x=>x.syncUser===sync.user.id);
-    return `<b>Sync across your devices</b><span class="fine">This browser is signed in as ${esc(sync.user.email)}${other?` for ${esc(other.name)}'s profile`:""}. One synced person per browser.</span>
-      <div class="row"><button class="btn sm" type="button" id="sync-use">Sync ${esc(pr.name)}'s notes with ${esc(sync.user.email)}</button></div>`;}
+    return `<b>Sync across your devices</b><span class="fine">This browser is signed in as ${esc(userOf(sync.user.email))}${other?` for ${esc(other.name)}'s profile`:""}. One synced person per browser.</span>
+      <div class="row"><button class="btn sm" type="button" id="sync-use">Sync ${esc(pr.name)}'s notes as ${esc(userOf(sync.user.email))}</button></div>`;}
+  const mode=S.syncMode||"create";
   return `<b>Sync across your devices</b>
-    <span class="fine">Get the same notes on your phone, iPad and computer. We'll email you a sign-in link; no password needed.</span>
-    <form id="sync-form" class="row" style="border:0;padding:0;background:none"><input type="email" id="sync-email" required placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:200px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)"><button class="btn primary">Email me a link</button></form>
+    <span class="fine">Get the same notes on your phone, iPad and computer. Pick a username and password; no email needed.</span>
+    <div class="row"><button class="btn sm ${mode==="create"?"primary":"ghost"}" type="button" data-sync-mode="create">Create sync account</button><button class="btn sm ${mode==="signin"?"primary":"ghost"}" type="button" data-sync-mode="signin">Sign in</button></div>
+    <form id="sync-form" style="border:0;padding:0;background:none;display:flex;flex-direction:column;gap:8px">
+      <input type="text" id="sync-user" required minlength="3" maxlength="30" pattern="[A-Za-z0-9._-]+" placeholder="Username (letters, numbers, . _ -)" autocomplete="username" autocapitalize="none" spellcheck="false" style="flex:1;min-width:150px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)">
+      <input type="password" id="sync-pass" required minlength="6" placeholder="${mode==="create"?"Choose a password (6+ characters)":"Password"}" autocomplete="${mode==="create"?"new-password":"current-password"}" style="flex:1;min-width:150px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)">
+      ${mode==="create"?`<input type="password" id="sync-pass2" required minlength="6" placeholder="Type the password again" autocomplete="new-password" style="flex:1;min-width:150px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)">`:""}
+      <div class="row"><button class="btn primary">${mode==="create"?"Create and start syncing":"Sign in and sync"}</button></div>
+    </form>
+    <span class="fine">${mode==="create"?"Write your username and password down. There's no email reset, so if you forget the password you'll need to ask the app's owner.":"Use the username and sync password you created on your other device."}</span>
     <span class="fine" id="sync-msg" aria-live="polite"></span>`;
 }
 document.addEventListener("click",async e=>{
   const t=e.target;
+  if(t.dataset&&t.dataset.syncMode){S.syncMode=t.dataset.syncMode;paintSync();setTimeout(()=>$("#sync-user")?.focus(),20);return;}
+  if(t.id==="sync-pw"){const f=$("#sync-pw-form");f.hidden=!f.hidden;if(!f.hidden)$("#sync-newpw").focus();return;}
   if(t.id==="sync-now"){await sync.flush();await sync.full(false);}
   if(t.id==="sync-stop"){if(!t.dataset.confirm){t.dataset.confirm="1";t.textContent="Tap again to stop syncing";return;}await sync.stop();toast("Sync stopped on this device. Your notes are still here.");}
   if(t.id==="sync-use"){updateProfile({syncUser:sync.user.id,syncEmail:sync.user.email,syncSince:null});await sync.full(true);sync.startLive();paintSync();}
 });
 document.addEventListener("submit",async e=>{
+  if(e.target.id==="sync-pw-form"){e.preventDefault();const msg=$("#sync-msg");
+    try{await sync.changePw($("#sync-newpw").value);msg.textContent="Sync password changed. Use the new one on your other devices.";e.target.hidden=true;}
+    catch(x){msg.textContent="Couldn't change it: "+(x.message||x);}return;}
   if(e.target.id!=="sync-form")return; e.preventDefault();
-  const email=$("#sync-email").value.trim(),msg=$("#sync-msg"),btn=e.target.querySelector("button");btn.disabled=true;msg.textContent="Sending…";
-  try{await sync.sendLink(email);try{ls.set("scr-sync-pending",store.profile?store.profile.id:"");}catch(x){}
-    msg.innerHTML=`Check <b>${esc(email)}</b> for a link from Supabase and open it <b>on this device</b>. The link works once and expires after an hour.`;}
+  const mode=S.syncMode||"create",user=$("#sync-user").value.trim(),pw=$("#sync-pass").value,msg=$("#sync-msg"),btn=e.target.querySelector("button.primary");
+  if(!/^[A-Za-z0-9._-]{3,30}$/.test(user)){msg.textContent="Usernames are 3 to 30 letters, numbers, dots, dashes or underscores.";return;}
+  if(mode==="create"&&pw!==$("#sync-pass2").value){msg.textContent="The two passwords don't match.";return;}
+  btn.disabled=true;msg.textContent=mode==="create"?"Creating your sync account…":"Signing in…";
+  try{if(mode==="create")await sync.create(user,pw);else await sync.signIn(user,pw);
+    // onAuthStateChange links this profile and syncs; show the result
+    setTimeout(()=>{paintSync();toast(mode==="create"?"Sync is on. Sign in with the same username on your other devices.":"Signed in. Your notes are syncing.");},300);}
   catch(x){const m=String(x.message||x);
-    msg.textContent=/rate limit|over_email_send_rate_limit/i.test(m)?"Too many sign-in emails were sent recently. Wait a while and try again.":/not.*authorized|email_address_not_authorized/i.test(m)?"This email can't receive sign-in links yet. The app's email sender still needs to be set up for everyone.":"Couldn't send the link: "+m;}
-  finally{btn.disabled=false;}
+    msg.textContent=/already registered|already exists/i.test(m)?"That username is taken. Try another, or choose Sign in if it's yours.":
+      /invalid login credentials/i.test(m)?"That username and password don't match. Check both and try again.":
+      /needs_confirm|confirm|not.*authorized/i.test(m)?"Sync isn't fully set up yet: the app owner needs to turn off “Confirm email” in Supabase.":
+      /rate limit/i.test(m)?"Too many tries just now. Wait a few minutes and try again.":
+      /weak|password should/i.test(m)?"Choose a longer password (at least 6 characters).":"Couldn't finish: "+m;
+    btn.disabled=false;}
 });
 window.addEventListener("online",()=>{sync.flush();sync.full(false);});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync.linked())sync.full(false);});
