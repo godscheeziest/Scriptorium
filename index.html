@@ -65,6 +65,8 @@ button{cursor:pointer}
 .who .row{display:flex;gap:8px;flex-wrap:wrap}
 .who .err{color:var(--rubric);font-size:13px;font-weight:600}
 .who .fine{font-size:12.5px;color:var(--muted)}
+.fs-btn{align-self:flex-start}
+@media (max-width:860px){.fs-btn{display:none!important}}
 .rail-foot{margin-top:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
 .status-dot.on{background:var(--ok)}
@@ -272,6 +274,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
       <button class="tab" data-view="search" id="tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Concordance</span></button>
       <button class="tab" data-view="notes" id="tab-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Sermon notes</span></button>
     </div>
+    <button class="btn ghost sm fs-btn" id="fs-btn" type="button" hidden title="Hide the browser's toolbars (Esc to exit)">⛶ Full screen</button>
     <button class="who-btn" id="who-btn" type="button" title="Switch person"><span class="av" id="who-av">?</span><span class="nm" id="who-nm">Choose profile</span></button>
     <div class="rail-foot">
       <div><span class="status-dot" id="store-dot"></span><span id="store-label">Connecting…</span></div>
@@ -1259,6 +1262,11 @@ function showAbout(){$("#about-in").innerHTML=aboutHtml();$("#about").hidden=fal
 $("#about").addEventListener("click",e=>{if(e.target.closest('[data-about="close"]'))$("#about").hidden=true;});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#about").hidden)$("#about").hidden=true;});
 $("#about-btn").addEventListener("click",showAbout);
+/* ---------- Full screen (the page's own, so the browser toolbar can't cover the app) ---------- */
+(function(){const b=$("#fs-btn");if(!document.fullscreenEnabled)return;b.hidden=false;
+  const paint=()=>{b.textContent=document.fullscreenElement?"Exit full screen":"⛶ Full screen";};
+  b.addEventListener("click",async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen({navigationUI:"hide"});}catch(e){toast("Full screen isn't available here. Try View → Enter Full Screen in your browser.");}});
+  document.addEventListener("fullscreenchange",paint);paint();})();
 /* ---------- Boot ---------- */
 (async function boot(){
   const shareCode=location.hash.startsWith("#share=")?location.hash.slice(7):null; if(shareCode)history.replaceState(null,"","#notes");
