@@ -1355,8 +1355,13 @@ const sync={
     this.chan=sb.channel("notes-"+uid).on("postgres_changes",{event:"*",schema:"public",table:"notes",filter:"user_id=eq."+uid},pl=>{
       const r=pl.new&&pl.new.id?pl.new:null;if(r){this.merge([r]);if(r.synced_at)updateProfile({syncSince:r.synced_at});this.lastAt=new Date();paintSync();}}).subscribe();},
   stopLive(){if(this.chan){sb.removeChannel(this.chan);this.chan=null;}},
-  async create(user,pw){const {data,error}=await sb.auth.signUp({email:toAcct(user),password:pw});if(error)throw error;
-    if(!data.session)throw new Error("needs_confirm");},
+  async create(user,pw){ // the server creates the account (no email is ever sent), then we sign in
+    let r=null;try{r=await fetch("api/sync-account",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:user,password:pw})});}catch(e){throw new Error("Couldn't reach the server. Check your connection.");}
+    if(r.status===503){const {data,error}=await sb.auth.signUp({email:toAcct(user),password:pw});if(error)throw error;if(!data.session)throw new Error("needs_confirm");return;}
+    const j=await r.json().catch(()=>({}));
+    if(r.status===409)throw new Error("already registered");
+    if(!r.ok)throw new Error(j.error||"Couldn't create the account.");
+    await this.signIn(user,pw);},
   async signIn(user,pw){const {error}=await sb.auth.signInWithPassword({email:toAcct(user),password:pw});if(error)throw error;},
   async changePw(pw){const {error}=await sb.auth.updateUser({password:pw});if(error)throw error;},
   async stop(){ // stop syncing this profile on this device; notes stay here and in the cloud
@@ -1416,7 +1421,7 @@ document.addEventListener("submit",async e=>{
   catch(x){const m=String(x.message||x);
     msg.textContent=/already registered|already exists/i.test(m)?"That username is taken. Try another, or choose Sign in if it's yours.":
       /invalid login credentials/i.test(m)?"That username and password don't match. Check both and try again.":
-      /needs_confirm|confirm|not.*authorized/i.test(m)?"Sync isn't fully set up yet: the app owner needs to turn off “Confirm email” in Supabase.":
+      /needs_confirm|confirm|not.*authorized|over_email_send_rate_limit|email rate limit/i.test(m)?"Creating sync accounts isn't set up yet. The app owner needs to add the Supabase key in Vercel.":
       /rate limit/i.test(m)?"Too many tries just now. Wait a few minutes and try again.":
       /weak|password should/i.test(m)?"Choose a longer password (at least 6 characters).":"Couldn't finish: "+m;
     btn.disabled=false;}

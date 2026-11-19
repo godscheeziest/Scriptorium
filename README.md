@@ -25,7 +25,7 @@ People can create a sync account with a username and password (no email) to keep
 - The page uses Supabase's publishable key, which is safe to include in the page; the database's security rules do the protecting.
 - The Supabase browser library is bundled in `vendor/` (MIT licence).
 
-Supabase setting to keep in place: **Authentication → Sign In / Providers → Email → Confirm email** must be **off**, so creating a sync account never sends an email. Forgotten passwords: the owner can set a new one for a user in **Authentication → Users**.
+Sync accounts are created by the site's server (`api/sync-account.js`) through Supabase's admin API, so no email is ever sent, whatever Supabase's email settings are. This needs `SUPABASE_SECRET_KEY` (Supabase → Project Settings → API Keys → Secret keys) in Vercel's Environment Variables. Forgotten passwords: the owner can set a new one for a user in **Authentication → Users**.
 
 ## Install it like an app
 

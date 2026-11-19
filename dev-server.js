@@ -18,6 +18,7 @@ try {
 const routes = {
   "/api/bible": (await import("./api/bible.js")).default,
   "/api/questions": (await import("./api/questions.js")).default,
+  "/api/sync-account": (await import("./api/sync-account.js")).default,
 };
 const types = { ".html": "text/html; charset=utf-8", ".json": "application/json", ".js": "text/javascript", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
