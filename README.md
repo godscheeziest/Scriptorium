@@ -7,7 +7,7 @@ A Bible study and sermon-notes app: read and compare translations, look up cross
 | Part | Where | Notes |
 |---|---|---|
 | App (one page) | `index.html` | Plain HTML/JS, no build step |
-| Built-in Bibles | `data/BSB.json`, `KJV.json`, `ASV.json` | Public domain, bundled |
+| Built-in Bibles | `data/BSB.json`, `KJV.json`, `ASV.json`, `YLT.json`, `BBE.json`, `GNV.json` | Public domain, bundled |
 | Cross-references | `data/xref.json` | OpenBible.info, CC-BY |
 | Strong's lexicon | `data/lexicon.json` | Public domain (via openscriptures/strongs) |
 | ESV and NLT | `api/bible.js`, `lib/licensed.js` | Fetched live from Crossway and Tyndale with your keys. Never stored |

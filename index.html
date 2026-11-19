@@ -226,7 +226,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
       <div><span class="status-dot" id="store-dot"></span><span id="store-label">Connecting…</span></div>
       <div id="ai-label">Question builder: checking…</div>
       <div class="backup"><button class="btn sm" id="export-notes">Back up notes</button><label class="btn sm" for="import-file">Restore</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
-      <div>Built in: BSB, KJV, ASV (public domain). <span id="lic-label"></span> Cross-references: OpenBible.info (CC-BY). Lexicon: Strong's.</div>
+      <div>Built in: BSB, KJV, ASV, YLT, BBE, Geneva 1599 (public domain). <span id="lic-label"></span> Cross-references: OpenBible.info (CC-BY). Lexicon: Strong's.</div>
     </div>
   </nav>
 
@@ -290,8 +290,8 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 "use strict";
 /* ---------- Book data & reference parsing ---------- */
 const BOOKS=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
-const VERSIONS={BSB:"Berean Standard Bible",KJV:"King James Version",ASV:"American Standard Version",ESV:"English Standard Version",NLT:"New Living Translation"};
-const LOCAL=["BSB","KJV","ASV"]; const REMOTE=["ESV","NLT"];
+const VERSIONS={BSB:"Berean Standard Bible",KJV:"King James Version",ASV:"American Standard Version",YLT:"Young's Literal Translation",BBE:"Bible in Basic English",GNV:"Geneva Bible (1599)",ESV:"English Standard Version",NLT:"New Living Translation"};
+const LOCAL=["BSB","KJV","ASV","YLT","BBE","GNV"]; const REMOTE=["ESV","NLT"];
 const AVAIL={ESV:false,NLT:false,claude:false,passcode:false}; const COPY={};
 const usable=()=>[...LOCAL,...REMOTE.filter(k=>AVAIL[k])];
 const ALIAS={0:"gen ge gn",1:"exod exo ex",2:"lev le lv",3:"num nu nm nb",4:"deut dt de",5:"josh jos",6:"judg jdg",7:"ru rth",14:"ezr",15:"neh ne",16:"esth est es",17:"jb",18:"psalm ps psa pss",19:"prov pro pr prv",20:"eccl ecc qoh eccles",21:"song sos songs|song of songs|canticles",22:"isa is",23:"jer je",24:"lam la",25:"ezek eze ezk",26:"dan da dn",27:"hos ho",28:"jl",29:"am",30:"obad ob",31:"jon jnh",32:"mic mi",33:"nah na",34:"hab",35:"zeph zep",36:"hag",37:"zech zec",38:"mal",39:"matt mt mat",40:"mk mrk mar",41:"lk luk",42:"jn jhn joh",43:"ac",44:"rom ro rm",47:"gal ga",48:"eph",49:"phil php",50:"col",55:"tit",56:"phlm philem phm",57:"heb",58:"jas jm",64:"jud",65:"rev re revelations|revelation of john"};
@@ -455,7 +455,8 @@ async function renderStudy(){
   const {b,c,v}=S.sel; const v2=S.sel.v2||v; const ref={b,c,v1:v,v2}; const single=v===v2;
   const bible=await load(LOCAL.includes(S.ver)?S.ver:"BSB"); const xr=await load("xref");
   const chapLen=(bible[b]?.[c-1]||[]).length;
-  const others=await Promise.all(usable().map(k=>getRange(k,ref).then(t=>[k,t],e=>[k,"(couldn't load: "+e.message+")"])));
+  const panelVers=S.allVers?usable():[...new Set(["BSB","KJV","ASV",...REMOTE.filter(k=>AVAIL[k]),S.ver,S.par].filter(Boolean))];
+  const others=await Promise.all(panelVers.map(k=>getRange(k,ref).then(t=>[k,t],e=>[k,"(couldn't load: "+e.message+")"])));
   const chap=await getChapter(S.ver,b,c).catch(()=>bible[b][c-1]);
   const text=chap[v-1]||verseText(bible,b,c,v);
   const xrefs=(xr[b+"."+c+"."+v]||[]).map(parseXref);
@@ -481,7 +482,7 @@ async function renderStudy(){
       ${(b!==S.b||c!==S.c)?`<button class="btn ghost sm" id="st-open">Open in reader</button>`:""}
     </div></div>
   ${single?`<div class="sec"><div class="label">Word study · tap a word</div><div class="words">${words}</div><div id="lex-out"></div></div>`:""}
-  <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
+  <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
   <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
     ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
   <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
@@ -496,6 +497,7 @@ $("#study").addEventListener("submit",e=>{if(e.target.id!=="st-form")return;e.pr
 $("#study").addEventListener("click",async e=>{
   const t=e.target;
   if(t.closest("#close-sheet")){$("#study").classList.add("closed");return;}
+  if(t.closest("#st-allvers")){S.allVers=true;renderStudy();return;}
   if(t.closest("#st-clear")){clearSelection();return;}
   if(t.closest("#st-prev")){studyStep(-1);return;}
   if(t.closest("#st-next")){studyStep(1);return;}
