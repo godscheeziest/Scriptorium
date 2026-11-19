@@ -25,7 +25,7 @@ const server = http.createServer(async (req, res) => {
   const path = new URL(req.url, "http://x").pathname;
   if (routes[path]) return routes[path](req, res);
   const file = normalize(join(root, path === "/" ? "index.html" : path));
-  const allowed = file === join(root, "index.html") || file === join(root, "manifest.webmanifest") || file.startsWith(join(root, "data") + "/") || file.startsWith(join(root, "icons") + "/");
+  const allowed = file === join(root, "index.html") || file === join(root, "manifest.webmanifest") || file.startsWith(join(root, "data") + "/") || file.startsWith(join(root, "icons") + "/") || file.startsWith(join(root, "vendor") + "/");
   if (!allowed) { res.statusCode = 404; return res.end("Not found"); }
   try {
     await stat(file);

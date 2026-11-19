@@ -17,6 +17,16 @@ Notes are saved in the browser you write them in. Use **Back up notes** regularl
 
 Other features: a formatting toolbar for notes, selecting several verses at once to add to a note, a verse panel with previous/next and passage look-up, answer boxes under each discussion question, and **Share / Export** to save a note as Word (.docx) or PDF.
 
+## Sync across devices (optional)
+
+People can sign in with an email link to keep the same notes on their phone, iPad and computer. This uses a Supabase project (`scriptorium`, in the Team Cheezy organization):
+
+- Table `public.notes`: one row per note per person, with row-level security so each person can only read and change their own rows. Deleted notes are kept as small "deleted" markers so deletions sync too.
+- The page uses Supabase's publishable key, which is safe to include in the page; the database's security rules do the protecting.
+- The Supabase browser library is bundled in `vendor/` (MIT licence).
+
+Supabase settings to keep in place: **Authentication → URL Configuration → Site URL** must be the live site's address, with the same address listed under **Redirect URLs**. Supabase's built-in email sender only delivers sign-in links to members of your Supabase team; to let anyone sign in, add your own email sender under **Authentication → Emails → SMTP Settings** (for example Resend, which has a free tier).
+
 ## Install it like an app
 
 Once deployed, open your site and:

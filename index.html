@@ -262,6 +262,11 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .about .note{font-size:13px;color:var(--muted);line-height:1.5}
 .about .close{position:sticky;top:0;align-self:flex-end;z-index:2}
 @media (max-width:600px){.about dl>div{grid-template-columns:1fr}}
+.sync-box{gap:8px}
+.sync-box .state{display:flex;align-items:center;gap:8px;font-size:14px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.sync-dot.off{background:var(--muted)}
+.sync-dot.busy{background:var(--hl)}
 </style>
 </head>
 <body>
@@ -347,6 +352,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 <div class="about" id="about" hidden role="dialog" aria-modal="true" aria-label="About and sources"><div class="about-in" id="about-in"></div></div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="vendor/supabase-2.119.0.js"></script>
 <script>
 "use strict";
 /* ---------- Book data & reference parsing ---------- */
@@ -672,10 +678,11 @@ const store={
     this.profile=pr;this.key=key;S.notes=notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));S.activeNote=null;
     try{sessionStorage.setItem("scr-who",pr.id);}catch(e){} ls.set("scr-who-last",pr.id);
     paintWhoBtn();setStoreLabel();hideWho();onNotesChanged();if(S.view==="notes")renderNotes();if(S.view==="read")renderChapter();
+    sync.afterOpen();
     if(S.pendingShare&&S.shared){S.pendingShare=false;await importShared();}
     else if(!pr.tourDone&&$("#shared").hidden)setTimeout(()=>showTour(0),400);
   },
-  close(){this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
+  close(){sync.stopLive();this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
   persist(){
     if(!this.profile){toast("Choose a profile first to save notes.");showWho();return;}
     const pr=this.profile,key=this.key,data=S.notes.slice();
@@ -685,8 +692,8 @@ const store={
     }).catch(e=>{console.warn(e);setSaveState("Not saved: "+e.message,true);});
     return this.writing;
   },
-  async save(n){n.updatedAt=Date.now();const i=S.notes.findIndex(x=>x.id===n.id);if(i<0)S.notes.unshift(n);else S.notes[i]=n;await this.persist();onNotesChanged();},
-  async remove(id){S.notes=S.notes.filter(n=>n.id!==id);await this.persist();onNotesChanged();}
+  async save(n){n.updatedAt=Date.now();const i=S.notes.findIndex(x=>x.id===n.id);if(i<0)S.notes.unshift(n);else S.notes[i]=n;await this.persist();onNotesChanged();sync.mark(n.id);},
+  async remove(id){S.notes=S.notes.filter(n=>n.id!==id);await this.persist();onNotesChanged();sync.mark(id);}
 };
 const initial=n=>(n||"?").trim().charAt(0).toUpperCase()||"?";
 function paintWhoBtn(){const pr=store.profile;$("#who-av").textContent=pr?initial(pr.name):"?";$("#who-nm").textContent=pr?pr.name:"Choose profile";$("#who-btn").title=pr?`Signed in as ${pr.name}. Switch person`:"Choose who is studying";}
@@ -757,8 +764,13 @@ function showWho(view,arg){
     <p class="fine">Your notes stay on this device only. With a password, they're encrypted, so other people using this device can't open them. Without one, anyone using this device can open your profile.</p>`;
     $("#who-pw").addEventListener("input",e=>{$("#who-pw2-l").hidden=!e.target.value;});
     setTimeout(()=>$("#who-name")?.focus(),30);return;}
+  if(view==="signin"){
+    el.innerHTML=`<div class="tag">Scriptorium</div><h1>Sign in</h1><div class="box sync-box" id="sync-box">${syncBoxHtml()}</div>
+      <p class="fine">After you open the link, your notes from your other devices appear here, in a profile with your name.</p>
+      <div class="row"><button class="btn ghost" type="button" data-who="list">Back</button></div>`;setTimeout(()=>$("#sync-email")?.focus(),30);return;}
   if(view==="manage"&&cur){
     el.innerHTML=`<div class="tag">Signed in as</div><h1>${esc(cur.name)}</h1>
+    <div class="box sync-box" id="sync-box">${syncBoxHtml()}</div>
     <form id="who-rename"><label>Name<input type="text" id="who-name" maxlength="40" value="${esc(cur.name)}" required></label><div class="row"><button class="btn">Save name</button></div></form>
     <form id="who-setpw"><label>${cur.salt?"New password":"Add a password"}<input type="password" id="who-pw" autocomplete="new-password" placeholder="${cur.salt?"Leave empty to remove the password":""}"></label>
       <label>Type it again<input type="password" id="who-pw2" autocomplete="new-password"></label><div class="err" id="who-err" aria-live="polite"></div>
@@ -767,7 +779,7 @@ function showWho(view,arg){
     <div class="row"><button class="btn primary" type="button" data-who="close">Done</button><button class="btn ghost" type="button" data-who="list">Switch person</button><button class="btn ghost" type="button" data-who="tour">How it works</button><button class="btn ghost" type="button" data-who="about">About &amp; sources</button></div>`;return;}
   el.innerHTML=`<div class="tag">Scriptorium · Hear it. Study it. Grow deeper.</div><h1>Who's studying?</h1>
     ${list.length?`<div class="plist">${list.map(pr=>`<button class="pcard" data-open="${pr.id}"><span class="av">${esc(initial(pr.name))}</span><span><span class="nm">${esc(pr.name)}</span><br><span class="meta">${esc(count(pr))}</span></span>${pr.salt?`<span class="lock">${lockSvg}</span>`:""}</button>`).join("")}</div>`:`<p class="fine" style="font-size:14px">Make a profile so your sermon notes, answers and questions stay together and separate from anyone else who uses this device.</p>`}
-    <div class="row"><button class="btn primary" type="button" data-who="new">+ New profile</button>${!list.length?'<button class="btn" type="button" data-who="guest">Just start, no profile name</button>':""}${cur?`<button class="btn ghost" type="button" data-who="manage">Manage ${esc(cur.name)}</button><button class="btn ghost" type="button" data-who="close">Back to ${esc(cur.name)}'s notes</button>`:""}</div>
+    <div class="row"><button class="btn primary" type="button" data-who="new">+ New profile</button><button class="btn" type="button" data-who="signin">Sign in to get notes from my other devices</button>${!list.length?'<button class="btn" type="button" data-who="guest">Just start, no profile name</button>':""}${cur?`<button class="btn ghost" type="button" data-who="manage">Manage ${esc(cur.name)}</button><button class="btn ghost" type="button" data-who="close">Back to ${esc(cur.name)}'s notes</button>`:""}</div>
     <p class="fine">Profiles and notes are saved on this device only. Use “Back up notes” to keep a copy or move notes to another device. <button class="btn ghost sm" type="button" data-who="about">About &amp; sources</button></p>`;
 }
 $("#who-btn").addEventListener("click",()=>showWho(store.profile?"manage":"list"));
@@ -779,6 +791,7 @@ $("#who").addEventListener("click",async e=>{
   else if(w==="new")showWho("new");
   else if(w==="close"){if(store.profile)hideWho();}
   else if(w==="manage")showWho("manage");
+  else if(w==="signin")showWho("signin");
   else if(w==="tour"){hideWho();showTour(0);}
   else if(w==="about"){showAbout();}
   else if(w==="guest"){const pr={id:newId(),name:"Guest",created:Date.now()};saveProfiles([...profiles(),pr]);await store.open(pr,null);}
@@ -827,11 +840,11 @@ $("#import-file").addEventListener("change",async e=>{
     let added=0,updated=0; incoming.forEach(n=>{if(!n||!n.id)return;const i=S.notes.findIndex(x=>x.id===n.id);
       if(i<0){S.notes.push(n);added++;}else if((n.updatedAt||0)>(S.notes[i].updatedAt||0)){S.notes[i]=n;updated++;}});
     S.notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); store.persist(); onNotesChanged(); if(S.view==="notes")renderNotes();
-    toast(`Restored: ${added} new, ${updated} updated`);}
+    toast(`Restored: ${added} new, ${updated} updated`); if(sync.linked())sync.full(true);}
   catch(x){toast("That file isn't a Scriptorium backup.");}
   e.target.value="";
 });
-function setStoreLabel(){const pr=store.profile;$("#store-dot").classList.toggle("on",!!pr);$("#store-label").textContent=pr?`${pr.name}'s notes · saved on this device${pr.salt?", locked":""}`:"No profile open";}
+function setStoreLabel(){const pr=store.profile;$("#store-dot").classList.toggle("on",!!pr);$("#store-label").textContent=pr?`${pr.name}'s notes · ${(typeof sync!=="undefined"&&sync.linked())?(sync.err?"not synced right now":"synced across devices"):"saved on this device"}${pr.salt?", locked":""}`:"No profile open";}
 function setSaveState(msg,err){const s=$("#save-state");if(!s)return;s.textContent=msg;s.classList.toggle("err",!!err);}
 function onNotesChanged(){
   if(S.view==="notes"){renderNoteList();const ed=$("#editor");const ae=document.activeElement;
@@ -1254,14 +1267,135 @@ function aboutHtml(){
   </dl>
   <h2>Design and software</h2><dl>
   ${row("Fonts",`Literata and Hanken Grotesk, SIL Open Font License, via Google Fonts. ${L("https://fonts.google.com")}`)}
+  ${row("Sync",`Supabase, for optional sign-in by email link and syncing notes across devices. The Supabase JavaScript library is MIT licensed. ${L("https://supabase.com")}`)}
   ${row("Word and PDF export",`JSZip and jsPDF, both MIT licensed. ${L("https://stuk.github.io/jszip/","jszip")} · ${L("https://github.com/parallax/jsPDF","jsPDF")}`)}
   </dl>
   <h2>Your notes</h2>
-  <p class="note">${typeof profiles==="function"?"Notes, answers and profiles are saved only on the device you use. Passwords encrypt a profile's notes on that device and can't be recovered if forgotten. Shared question links carry only the questions, never your notes or answers.":"Notes and answers are saved to your Claude account and are private to you."}</p>`;}
+  <p class="note">${typeof profiles==="function"?"Notes, answers and profiles are saved on the device you use. If you turn on sync, a copy of that person's notes is also kept in the app's Supabase database, where only that signed-in person can read it. Passwords encrypt a profile's notes on that device and can't be recovered if forgotten. Shared question links carry only the questions, never your notes or answers.":"Notes and answers are saved to your Claude account and are private to you."}</p>`;}
 function showAbout(){$("#about-in").innerHTML=aboutHtml();$("#about").hidden=false;$("#about .close").focus();}
 $("#about").addEventListener("click",e=>{if(e.target.closest('[data-about="close"]'))$("#about").hidden=true;});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#about").hidden)$("#about").hidden=true;});
 $("#about-btn").addEventListener("click",showAbout);
+/* ---------- Sync across devices (Supabase, sign in with an email link) ---------- */
+const SB_URL="https://flxsbmrwameevpoqcenc.supabase.co", SB_KEY="sb_publishable_GZBykj0hkTSrqBudbljnYA_zpW7OcDD";
+const sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY,{auth:{flowType:"implicit",detectSessionInUrl:true,persistSession:true,autoRefreshToken:true,storageKey:"scr-sb-auth"}}):null;
+const sync={
+  user:null, chan:null, timer:null, busy:false, lastAt:null, err:"",
+  qKey(){return "scr-syncq-"+(store.profile?store.profile.id:"");},
+  queue(){try{return new Set(JSON.parse(ls.get(this.qKey())||"[]"));}catch(e){return new Set();}},
+  saveQueue(q){ls.set(this.qKey(),JSON.stringify([...q]));},
+  linked(){return !!(sb&&this.user&&store.profile&&store.profile.syncUser===this.user.id);},
+  async init(){
+    if(!sb)return;
+    const {data}=await sb.auth.getSession(); this.user=data.session?data.session.user:null;
+    sb.auth.onAuthStateChange((ev,sess)=>{const was=this.user;this.user=sess?sess.user:null;
+      if(ev==="SIGNED_IN"&&(!was||was.id!==this.user.id))this.onSignedIn();
+      if(ev==="SIGNED_OUT"){this.stopLive();}
+      paintSync();});
+  },
+  async onSignedIn(){
+    if(!this.user)return;
+    if(!store.profile){ // new device: make a profile for this person
+      const name=(this.user.email||"Me").split("@")[0].replace(/[._-]+/g," ").replace(/\b\w/g,c=>c.toUpperCase()).slice(0,40)||"Me";
+      const existing=profiles().find(x=>x.syncUser===this.user.id&&!x.salt);
+      const pr=existing||{id:newId(),name,created:Date.now(),syncUser:this.user.id,syncEmail:this.user.email,tourDone:false};
+      if(!existing)saveProfiles([...profiles(),pr]);
+      await store.open(pr,null); return;}
+    if(!store.profile.syncUser){updateProfile({syncUser:this.user.id,syncEmail:this.user.email});}
+    paintSync(); await this.full(true); this.stopLive(); this.startLive();
+  },
+  async afterOpen(){this.stopLive(); if(this.linked()){await this.full(false);this.startLive();} paintSync();},
+  async full(first){
+    if(!this.linked()||this.busy)return; this.busy=true; this.err=""; paintSync();
+    try{
+      const since=first?null:store.profile.syncSince||null; let rows=[],from=0;
+      for(;;){let q=sb.from("notes").select("id,data,updated_at,deleted,synced_at").order("synced_at",{ascending:true}).range(from,from+999);
+        if(since)q=q.gt("synced_at",since);
+        const {data,error}=await q; if(error)throw error; rows=rows.concat(data); if(data.length<1000)break; from+=1000;}
+      const remote=new Map(rows.map(r=>[r.id,r]));
+      this.merge(rows);
+      // send anything this device has that the cloud doesn't have, or has older
+      const q=this.queue();
+      if(first||!since)S.notes.forEach(n=>{const r=remote.get(n.id);if(!r||(r.updated_at||0)<(n.updatedAt||0))q.add(n.id);});
+      this.saveQueue(q); await this.flush(true);
+      const newest=rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,store.profile.syncSince||"");
+      if(newest)updateProfile({syncSince:newest});
+      this.lastAt=new Date();
+    }catch(e){console.warn(e);this.err=e.message||"Sync failed";}
+    finally{this.busy=false;paintSync();}
+  },
+  merge(rows){
+    let changed=false;
+    rows.forEach(r=>{
+      if(pending&&pending.id===r.id&&(pending.updatedAt||0)>=r.updated_at)return; // being typed here
+      const i=S.notes.findIndex(n=>n.id===r.id); const local=i>=0?S.notes[i]:null;
+      if(r.deleted){if(local&&(local.updatedAt||0)<=r.updated_at){S.notes.splice(i,1);changed=true;if(S.activeNote===r.id)S.activeNote=null;}return;}
+      if(!local||(local.updatedAt||0)<r.updated_at){const n={...r.data,id:r.id,updatedAt:r.updated_at};if(local)S.notes[i]=n;else S.notes.push(n);changed=true;}
+    });
+    if(changed){S.notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));store.persist();
+      const ed=$("#editor");if(S.view!=="notes"||!ed.contains(document.activeElement))renderNotes();else{renderNoteList();renderSide();}
+      onNotesChanged();}
+  },
+  mark(id){if(!this.linked())return;const q=this.queue();q.add(id);this.saveQueue(q);clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),900);},
+  async flush(inFull){
+    if(!this.linked()||!navigator.onLine)return; const q=this.queue(); if(!q.size)return;
+    const rows=[...q].map(id=>{const n=S.notes.find(x=>x.id===id);
+      if(n){const d={...n};delete d.id;return {id,data:d,updated_at:n.updatedAt||Date.now(),deleted:false};}
+      return {id,data:null,updated_at:Date.now(),deleted:true};});
+    if(!inFull){this.busy=true;paintSync();}
+    try{for(let i=0;i<rows.length;i+=200){const {error}=await sb.from("notes").upsert(rows.slice(i,i+200),{onConflict:"user_id,id"});if(error)throw error;}
+      const left=this.queue();rows.forEach(r=>left.delete(r.id));this.saveQueue(left);this.lastAt=new Date();this.err="";}
+    catch(e){console.warn(e);this.err=e.message||"Couldn't sync";}
+    finally{if(!inFull){this.busy=false;paintSync();}}
+  },
+  startLive(){if(!this.linked())return;const uid=this.user.id;
+    this.chan=sb.channel("notes-"+uid).on("postgres_changes",{event:"*",schema:"public",table:"notes",filter:"user_id=eq."+uid},pl=>{
+      const r=pl.new&&pl.new.id?pl.new:null;if(r){this.merge([r]);if(r.synced_at)updateProfile({syncSince:r.synced_at});this.lastAt=new Date();paintSync();}}).subscribe();},
+  stopLive(){if(this.chan){sb.removeChannel(this.chan);this.chan=null;}},
+  async sendLink(email){
+    const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});
+    if(error)throw error;},
+  async stop(){ // stop syncing this profile on this device; notes stay here and in the cloud
+    this.stopLive(); if(store.profile)updateProfile({syncUser:null,syncEmail:null,syncSince:null});
+    if(sb)await sb.auth.signOut({scope:"local"}); this.user=null; paintSync();}
+};
+function paintSync(){
+  setStoreLabel();
+  const box=$("#sync-box"); if(box)box.innerHTML=syncBoxHtml();
+}
+function syncBoxHtml(){
+  if(!sb)return `<b>Sync across your devices</b><span class="fine">Sync couldn't load. Check your connection and reload.</span>`;
+  const pr=store.profile;
+  if(sync.linked()){const t=sync.lastAt?sync.lastAt.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"}):"";
+    return `<b>Sync across your devices</b>
+      <div class="state"><span class="sync-dot ${sync.busy?"busy":sync.err?"off":""}"></span><span>${sync.busy?"Syncing…":sync.err?"Not synced: "+esc(sync.err):"Synced as "+esc(sync.user.email)+(t?" · "+t:"")}</span></div>
+      <span class="fine">Sign in with ${esc(sync.user.email)} on your other devices to see the same notes there.${pr&&pr.salt?" Your password still locks notes on this device; the synced copy is protected by your sign-in.":""}</span>
+      <div class="row"><button class="btn sm" type="button" id="sync-now">Sync now</button><button class="btn ghost sm" type="button" id="sync-stop">Stop syncing on this device</button></div>`;}
+  if(sync.user&&pr&&pr.syncUser!==sync.user.id){const other=profiles().find(x=>x.syncUser===sync.user.id);
+    return `<b>Sync across your devices</b><span class="fine">This browser is signed in as ${esc(sync.user.email)}${other?` for ${esc(other.name)}'s profile`:""}. One synced person per browser.</span>
+      <div class="row"><button class="btn sm" type="button" id="sync-use">Sync ${esc(pr.name)}'s notes with ${esc(sync.user.email)}</button></div>`;}
+  return `<b>Sync across your devices</b>
+    <span class="fine">Get the same notes on your phone, iPad and computer. We'll email you a sign-in link; no password needed.</span>
+    <form id="sync-form" class="row" style="border:0;padding:0;background:none"><input type="email" id="sync-email" required placeholder="you@example.com" autocomplete="email" style="flex:1;min-width:200px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)"><button class="btn primary">Email me a link</button></form>
+    <span class="fine" id="sync-msg" aria-live="polite"></span>`;
+}
+document.addEventListener("click",async e=>{
+  const t=e.target;
+  if(t.id==="sync-now"){await sync.flush();await sync.full(false);}
+  if(t.id==="sync-stop"){if(!t.dataset.confirm){t.dataset.confirm="1";t.textContent="Tap again to stop syncing";return;}await sync.stop();toast("Sync stopped on this device. Your notes are still here.");}
+  if(t.id==="sync-use"){updateProfile({syncUser:sync.user.id,syncEmail:sync.user.email,syncSince:null});await sync.full(true);sync.startLive();paintSync();}
+});
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="sync-form")return; e.preventDefault();
+  const email=$("#sync-email").value.trim(),msg=$("#sync-msg"),btn=e.target.querySelector("button");btn.disabled=true;msg.textContent="Sending…";
+  try{await sync.sendLink(email);try{ls.set("scr-sync-pending",store.profile?store.profile.id:"");}catch(x){}
+    msg.innerHTML=`Check <b>${esc(email)}</b> for a link from Supabase and open it <b>on this device</b>. The link works once and expires after an hour.`;}
+  catch(x){const m=String(x.message||x);
+    msg.textContent=/rate limit|over_email_send_rate_limit/i.test(m)?"Too many sign-in emails were sent recently. Wait a while and try again.":/not.*authorized|email_address_not_authorized/i.test(m)?"This email can't receive sign-in links yet. The app's email sender still needs to be set up for everyone.":"Couldn't send the link: "+m;}
+  finally{btn.disabled=false;}
+});
+window.addEventListener("online",()=>{sync.flush();sync.full(false);});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync.linked())sync.full(false);});
 /* ---------- Full screen (the page's own, so the browser toolbar can't cover the app) ---------- */
 (function(){const b=$("#fs-btn");if(!document.fullscreenEnabled)return;b.hidden=false;
   const paint=()=>{b.textContent=document.fullscreenElement?"Exit full screen":"⛶ Full screen";};
@@ -1269,10 +1403,20 @@ $("#about-btn").addEventListener("click",showAbout);
   document.addEventListener("fullscreenchange",paint);paint();})();
 /* ---------- Boot ---------- */
 (async function boot(){
+  const authReturn=/access_token=|error_description=/.test(location.hash);
+  if(authReturn&&sb){const err=new URLSearchParams(location.hash.slice(1)).get("error_description");await sync.init();history.replaceState(null,"","#notes");
+    if(err)setTimeout(()=>toast(/expired|invalid/i.test(err)?"That sign-in link has expired or was already used. Send a new one.":"Sign-in didn't finish: "+err),600);}
+  else await sync.init();
   const shareCode=location.hash.startsWith("#share=")?location.hash.slice(7):null; if(shareCode)history.replaceState(null,"","#notes");
   const h=location.hash.slice(1); show(["read","search","notes"].includes(h)?h:"read");
   $("#study-body").innerHTML=studyIntro(); if(window.innerWidth>860)$("#study").classList.remove("closed");
-  await store.init(); if(shareCode){hideWho();await openShared(shareCode);}
+  await store.init();
+  if(authReturn&&sync.user){ // just came back from the email link
+    let want=null;try{want=ls.get("scr-sync-pending");ls.del("scr-sync-pending");}catch(e){}
+    const pr=want&&profiles().find(x=>x.id===want);
+    if(pr&&!pr.salt&&(!store.profile||store.profile.id!==pr.id))await store.open(pr,null);
+    await sync.onSignedIn(); toast("Signed in. Your notes will now sync across your devices.");}
+  if(shareCode){hideWho();await openShared(shareCode);}
   try{const r=await fetch("api/bible?status=1");if(r.ok)Object.assign(AVAIL,await r.json());}catch(e){}
   setAiLabel(); fillVersionMenus(); if(S.view==="read")renderChapter();
   // Open with a verse selected so the study margin shows what it does
