@@ -141,6 +141,20 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .notes-wrap.focus .body-in{font-size:18px}
 .notes-wrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:24px;max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .note-list{display:flex;flex-direction:column;gap:6px}
+.note-search{width:100%;margin-bottom:8px}
+.nudge{border:1px solid color-mix(in srgb,var(--accent) 40%,var(--rule));background:var(--panel);border-radius:var(--r);padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.nudge .row{display:flex;gap:6px;flex-wrap:wrap}
+.tour{position:fixed;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:45;width:min(340px,calc(100% - 32px));background:var(--ink);color:var(--paper);border-radius:12px;padding:16px 18px;box-shadow:0 12px 32px #0005;display:flex;flex-direction:column;gap:8px}
+.tour .step{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;font-weight:600}
+.tour h3{margin:0;font-family:var(--scripture);font-size:20px;font-weight:600}
+.tour p{margin:0;font-size:14px;line-height:1.5;opacity:.92}
+.tour .row{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.tour .btn.ghost{color:var(--paper)}
+.tour .btn.ghost:hover{background:#ffffff22;color:var(--paper)}
+.shared-q{display:flex;flex-direction:column;gap:6px}
+.shared-q h4{margin:10px 0 2px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.shared-q ol{margin:0;padding-left:1.3em;font-family:var(--scripture);font-size:15.5px;line-height:1.5;display:flex;flex-direction:column;gap:6px}
+@media (max-width:860px){.tour{left:50%;right:auto;transform:translateX(-50%)}}
 .note-item{border:1px solid transparent;background:none;text-align:left;border-radius:var(--r);padding:9px 10px;display:flex;flex-direction:column;gap:1px}
 .note-item:hover{background:var(--soft)}
 .note-item.on{background:var(--panel);border-color:var(--rule)}
@@ -248,6 +262,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
     <div class="rail-foot">
       <div><span class="status-dot" id="store-dot"></span><span id="store-label">Connecting…</span></div>
       <div id="ai-label">Question builder: checking…</div>
+      <div><button class="btn ghost sm" id="help-btn" type="button">How it works</button></div>
       <div class="backup"><button class="btn sm" id="export-notes">Back up notes</button><label class="btn sm" for="import-file">Restore</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
       <div>Built in: BSB, KJV, ASV, YLT, BBE, Geneva 1599 (public domain). <span id="lic-label"></span> Cross-references: OpenBible.info (CC-BY). Lexicon: Strong's.</div>
     </div>
@@ -294,6 +309,8 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
       <div class="notes-wrap">
         <aside>
           <div class="bar" style="justify-content:space-between"><div class="label">Your notes</div><button class="btn primary sm" id="new-note">+ New</button></div>
+          <div id="backup-nudge"></div>
+          <input type="search" class="note-search" id="note-q" placeholder="Search notes, or a verse like Rom 8" aria-label="Search your notes">
           <div class="note-list" id="note-list"></div>
           <div class="backup" style="margin-top:14px"><button class="btn ghost sm" type="button" onclick="document.getElementById('export-notes').click()">Back up notes</button><label class="btn ghost sm" for="import-file">Restore from backup</label></div>
         </aside>
@@ -307,6 +324,8 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
   </aside>
 </div>
 <div class="pickbar" id="pickbar" hidden><span class="n" id="pick-n"></span><button class="btn primary sm" id="pick-add">Add to note</button><button class="btn ghost sm" id="pick-copy">Copy</button><button class="btn ghost sm" id="pick-done">Done</button></div>
+<div class="tour" id="tour" hidden role="dialog" aria-label="How Scriptorium works"></div>
+<div class="who" id="shared" hidden role="dialog" aria-modal="true" aria-label="Shared questions"><div class="who-in" id="shared-in"></div></div>
 <div class="who" id="who" hidden role="dialog" aria-modal="true" aria-label="Choose who is studying"><div class="who-in" id="who-in"></div></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -635,6 +654,8 @@ const store={
     this.profile=pr;this.key=key;S.notes=notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));S.activeNote=null;
     try{sessionStorage.setItem("scr-who",pr.id);}catch(e){} ls.set("scr-who-last",pr.id);
     paintWhoBtn();setStoreLabel();hideWho();onNotesChanged();if(S.view==="notes")renderNotes();if(S.view==="read")renderChapter();
+    if(S.pendingShare&&S.shared){S.pendingShare=false;await importShared();}
+    else if(!pr.tourDone&&$("#shared").hidden)setTimeout(()=>showTour(0),400);
   },
   close(){this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
   persist(){
@@ -652,6 +673,52 @@ const store={
 const initial=n=>(n||"?").trim().charAt(0).toUpperCase()||"?";
 function paintWhoBtn(){const pr=store.profile;$("#who-av").textContent=pr?initial(pr.name):"?";$("#who-nm").textContent=pr?pr.name:"Choose profile";$("#who-btn").title=pr?`Signed in as ${pr.name}. Switch person`:"Choose who is studying";}
 function hideWho(){$("#who").hidden=true;}
+function updateProfile(patch){if(!store.profile)return;const pr={...store.profile,...patch};saveProfiles(profiles().map(x=>x.id===pr.id?pr:x));store.profile=pr;}
+const DAY=86400000;
+function renderNudge(){const el=$("#backup-nudge");if(!el)return;const pr=store.profile;
+  const due=pr&&S.notes.length>=2&&Date.now()>(pr.snoozeBackup||0)&&(!pr.lastBackup||Date.now()-pr.lastBackup>21*DAY);
+  el.innerHTML=due?`<div class="nudge"><span>${pr.lastBackup?"It's been a few weeks since your last backup.":"Your notes are only on this device."} A backup file keeps them safe if this browser's data is cleared.</span><div class="row"><button class="btn primary sm" id="nudge-go" type="button">Back up now</button><button class="btn ghost sm" id="nudge-later" type="button">Later</button></div></div>`:"";}
+$("#backup-nudge").addEventListener("click",e=>{if(e.target.id==="nudge-go")$("#export-notes").click();if(e.target.id==="nudge-later"){updateProfile({snoozeBackup:Date.now()+7*DAY});renderNudge();}});
+const TOUR=[
+  {v:"read",h:"Read and study",p:"Tap any verse to see it in other versions, its cross-references, and the Hebrew or Greek behind each word. Use “Select verses” to grab several at once."},
+  {v:"notes",h:"Take sermon notes",p:"Type as you listen. References like John 15:5 or Ps 23 become links automatically, and your notes connect to other sermons that cite the same verses."},
+  {v:"notes",h:"Grow deeper",p:"When you're done, build discussion questions from your notes, write your answers, and share the questions with your group. Use Share / Export for Word or PDF."}];
+function showTour(i){const t=$("#tour");if(i>=TOUR.length){t.hidden=true;updateProfile({tourDone:true});return;}
+  const st=TOUR[i];if(S.view!==st.v)show(st.v);
+  t.innerHTML=`<div class="step">Step ${i+1} of ${TOUR.length}</div><h3>${st.h}</h3><p>${st.p}</p><div class="row"><button class="btn ghost sm" data-tour="skip">Skip</button><button class="btn primary sm" data-tour="${i+1}">${i+1<TOUR.length?"Next":"Got it"}</button></div>`;
+  t.hidden=false;t.querySelector(".btn.primary").focus();}
+$("#tour").addEventListener("click",e=>{const b=e.target.closest("[data-tour]");if(!b)return;if(b.dataset.tour==="skip")showTour(TOUR.length);else showTour(+b.dataset.tour);});
+$("#help-btn").addEventListener("click",()=>showTour(0));
+// Share questions as a link (the questions travel inside the link; nothing is uploaded)
+const b64url=bytes=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64url=s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));
+async function packShare(obj){const raw=new TextEncoder().encode(JSON.stringify(obj));
+  if(window.CompressionStream){const z=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());return "z"+b64url(z);}
+  return "j"+b64url(raw);}
+async function unpackShare(s){const bytes=unb64url(s.slice(1));
+  const raw=s[0]==="z"?new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()):bytes;
+  return JSON.parse(new TextDecoder().decode(raw));}
+async function shareQuestions(){const n=activeNote();if(!n||!(n.questions||[]).length)return;
+  const data={v:1,t:n.title||"Sermon",s:n.speaker||"",d:n.date||"",p:n.passage||"",f:store.profile?.name||"",q:n.questions.filter(q=>!q.parent).map(q=>[q.kind,q.text])};
+  const url=location.origin+location.pathname+"#share="+await packShare(data);
+  const text=`Discussion questions: ${data.t}${data.p?" ("+data.p+")":""}`;
+  if(navigator.share){try{await navigator.share({title:"Scriptorium",text,url});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+  copyText(url);toast("Link copied. Paste it into a text or email to your group.");}
+async function openShared(code){let d;try{d=await unpackShare(code);}catch(e){toast("That shared link is damaged or incomplete.");return;}
+  S.shared=d;const kinds=[...new Set(d.q.map(x=>x[0]))];
+  $("#shared-in").innerHTML=`<div class="tag">Shared with you${d.f?" by "+esc(d.f):""}</div><h1>${esc(d.t)}</h1>
+    <p class="fine" style="font-size:14px">${esc([d.s,d.d,d.p].filter(Boolean).join(" · "))}</p>
+    <div class="box shared-q">${kinds.map(k=>`<h4>${esc(k)}</h4><ol>${d.q.filter(x=>x[0]===k).map(x=>`<li>${esc(x[1])}</li>`).join("")}</ol>`).join("")}</div>
+    <div class="row"><button class="btn primary" id="shared-save" type="button">Save to my notes</button><button class="btn ghost" id="shared-close" type="button">Not now</button></div>
+    <p class="fine">Saving adds these questions to a new sermon note in your profile, with space under each one for your answers.</p>`;
+  $("#shared").hidden=false;}
+async function importShared(){const d=S.shared;if(!d)return;S.shared=null;$("#shared").hidden=true;
+  const n=blankNote({title:d.t,speaker:d.s,date:d.d||new Date().toISOString().slice(0,10),passage:d.p,html:`<p><i>Questions shared${d.f?" by "+esc(d.f):""}.</i></p>`,
+    questions:d.q.map(([k,t])=>({id:newId(),kind:String(k),text:String(t),done:false}))});
+  n.body=htmlToText(n.html);n.refs=collectRefs(n);S.activeNote=n.id;await store.save(n);show("notes");toast("Saved to your notes");}
+$("#shared").addEventListener("click",async e=>{
+  if(e.target.id==="shared-close"){S.shared=null;$("#shared").hidden=true;if(!store.profile)showWho();}
+  if(e.target.id==="shared-save"){if(!store.profile){$("#shared").hidden=true;S.pendingShare=true;showWho();return;}await importShared();}});
 function showWho(view,arg){
   const el=$("#who-in"),list=profiles(),cur=store.profile;$("#who").hidden=false;
   const lockSvg='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
@@ -679,7 +746,7 @@ function showWho(view,arg){
       <label>Type it again<input type="password" id="who-pw2" autocomplete="new-password"></label><div class="err" id="who-err" aria-live="polite"></div>
       <div class="row"><button class="btn">${cur.salt?"Change or remove password":"Add password"}</button></div></form>
     <div class="box"><b>Delete this profile</b><span class="fine">Deletes ${esc(cur.name)}'s notes from this device. Back them up first if you want to keep them.</span><div class="row"><button class="btn" id="who-del" type="button">Delete profile and notes</button></div></div>
-    <div class="row"><button class="btn primary" type="button" data-who="close">Done</button><button class="btn ghost" type="button" data-who="list">Switch person</button></div>`;return;}
+    <div class="row"><button class="btn primary" type="button" data-who="close">Done</button><button class="btn ghost" type="button" data-who="list">Switch person</button><button class="btn ghost" type="button" data-who="tour">How it works</button></div>`;return;}
   el.innerHTML=`<div class="tag">Scriptorium · Hear it. Study it. Grow deeper.</div><h1>Who's studying?</h1>
     ${list.length?`<div class="plist">${list.map(pr=>`<button class="pcard" data-open="${pr.id}"><span class="av">${esc(initial(pr.name))}</span><span><span class="nm">${esc(pr.name)}</span><br><span class="meta">${esc(count(pr))}</span></span>${pr.salt?`<span class="lock">${lockSvg}</span>`:""}</button>`).join("")}</div>`:`<p class="fine" style="font-size:14px">Make a profile so your sermon notes, answers and questions stay together and separate from anyone else who uses this device.</p>`}
     <div class="row"><button class="btn primary" type="button" data-who="new">+ New profile</button>${!list.length?'<button class="btn" type="button" data-who="guest">Just start, no profile name</button>':""}${cur?`<button class="btn ghost" type="button" data-who="manage">Manage ${esc(cur.name)}</button><button class="btn ghost" type="button" data-who="close">Back to ${esc(cur.name)}'s notes</button>`:""}</div>
@@ -694,6 +761,7 @@ $("#who").addEventListener("click",async e=>{
   else if(w==="new")showWho("new");
   else if(w==="close"){if(store.profile)hideWho();}
   else if(w==="manage")showWho("manage");
+  else if(w==="tour"){hideWho();showTour(0);}
   else if(w==="guest"){const pr={id:newId(),name:"Guest",created:Date.now()};saveProfiles([...profiles(),pr]);await store.open(pr,null);}
   if(t.id==="who-del"){if(!t.dataset.confirm){t.dataset.confirm="1";t.textContent="Tap again to delete for good";return;}
     const id=store.profile.id;ls.del(notesKey(id));saveProfiles(profiles().filter(x=>x.id!==id));store.close();showWho("list");toast("Profile deleted");}
@@ -730,7 +798,7 @@ $("#who").addEventListener("submit",async e=>{
   catch(x){$("#who-err").textContent="That password isn't right. Try again.";btn.disabled=false;$("#who-pw").select();}
 });
 $("#export-notes").addEventListener("click",()=>{
-  if(!store.profile){showWho();return;} flushSave();
+  if(!store.profile){showWho();return;} flushSave(); updateProfile({lastBackup:Date.now(),snoozeBackup:0}); setTimeout(renderNudge,50);
   const blob=new Blob([JSON.stringify({app:"scriptorium",version:1,exported:new Date().toISOString(),notes:S.notes},null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`scriptorium-${(store.profile.name||"notes").replace(/[^\w-]+/g,"-")}-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
@@ -806,12 +874,20 @@ $("#editor").addEventListener("keydown",e=>{if(!e.target.closest||!e.target.clos
   if(e.key==="Tab"){e.preventDefault();document.execCommand(e.shiftKey?"outdent":"indent");}});
 try{if(localStorage.getItem("scr-focus"))document.querySelector(".notes-wrap").classList.add("focus");}catch(x){}
 function renderNotes(){renderNoteList();renderEditor();}
+function noteMatches(n,q){
+  const r=parseRefs(q)[0];
+  if(r&&q.trim().length<=24){return (n.refs||[]).some(x=>x.b===r.b&&(!r.c||x.c===r.c)&&(!r.v1||!x.v1||(x.v1<=(r.v2||r.v1)&&(x.v2||x.v1)>=r.v1)));}
+  const hay=[n.title,n.speaker,n.passage,n.date,n.body,...(n.questions||[]).flatMap(x=>[x.text,x.answer||""])].join(" ").toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(w=>hay.includes(w));}
 function renderNoteList(){
-  const el=$("#note-list");
+  const el=$("#note-list"); renderNudge();
   if(!S.notes.length){el.innerHTML=`<p class="empty">No notes yet.</p>`;return;}
   if(!activeNote())S.activeNote=S.notes[0].id;
-  el.innerHTML=S.notes.map(n=>`<button class="note-item${n.id===S.activeNote?" on":""}" data-id="${n.id}"><span class="tt">${esc(n.title||"Untitled")}</span><span class="mm">${esc([n.passage,n.date].filter(Boolean).join(" · "))}</span></button>`).join("");
+  const q=(S.noteQ||"").trim(); const list=q?S.notes.filter(n=>noteMatches(n,q)):S.notes;
+  if(!list.length){el.innerHTML=`<p class="empty">No notes match “${esc(q)}”.</p>`;return;}
+  el.innerHTML=(q?`<div class="sub" style="margin:0 2px 2px">${list.length} of ${S.notes.length} notes</div>`:"")+list.map(n=>`<button class="note-item${n.id===S.activeNote?" on":""}" data-id="${n.id}"><span class="tt">${esc(n.title||"Untitled")}</span><span class="mm">${esc([n.passage,n.date].filter(Boolean).join(" · "))}</span></button>`).join("");
 }
+$("#note-q").addEventListener("input",e=>{S.noteQ=e.target.value;renderNoteList();});
 $("#note-list").addEventListener("click",e=>{const b=e.target.closest(".note-item");if(!b)return;flushSave();S.activeNote=b.dataset.id;renderNotes();});
 $("#new-note").addEventListener("click",async()=>{if(!store.profile){showWho();return;}flushSave();const n=blankNote();S.activeNote=n.id;await store.save(n);renderNotes();$(".title-in")?.focus();});
 function collectRefs(n){const seen=new Set();return [...parseRefs(n.passage||""),...parseRefs(n.body||"")].filter(r=>{const k=refLabel(r);if(seen.has(k))return false;seen.add(k);return true;}).map(({b,c,v1,v2})=>({b,c,v1,v2}));}
@@ -871,6 +947,7 @@ $("#editor").addEventListener("click",async e=>{
   const bq=t.closest("#build-q"); if(bq){const n=activeNote();const answered=(n.questions||[]).filter(q=>q.answer&&q.answer.trim()).length;
     if(answered&&!bq.dataset.confirm){bq.dataset.confirm="1";bq.textContent=`Replace ${answered} answered question${answered===1?"":"s"}? Tap again`;setTimeout(()=>{if(bq.isConnected){delete bq.dataset.confirm;bq.textContent="Build a fresh set";}},4000);return;}
     buildQuestions();return;}
+  if(t.closest("#share-q")){shareQuestions();return;}
   if(t.closest("#copy-q")){copyQuestions();return;}
   if(t.closest("#clear-q")){const n=activeNote();n.questions=[];store.save(JSON.parse(JSON.stringify(n))).catch(()=>{});renderSide();return;}
   const qa=t.closest("[data-qact]"); if(qa){questionAction(qa.dataset.qact,qa.closest(".q").dataset.qid);return;}
@@ -887,7 +964,7 @@ async function renderSide(){
     <div class="sec"><div class="sec-head"><div class="label">Connected notes</div></div>
       ${conn.length?conn.map(c=>`<button class="note-link" data-note="${c.n.id}"><b>${esc(c.n.title||"Untitled")}</b><span class="why">${esc(c.why)}</span></button>`).join(""):'<p class="empty">When another note cites the same verses, the same chapter, or a cross-reference of them, it shows up here.</p>'}</div>
     <div class="sec"><div class="sec-head"><div class="label">Discussion questions</div>
-        <span>${qs.length?`<button class="btn ghost sm" id="copy-q">Copy for group</button><button class="btn ghost sm" id="clear-q">Clear</button>`:""}</span></div>
+        <span>${qs.length?`<button class="btn ghost sm" id="share-q">Share with group</button><button class="btn ghost sm" id="copy-q">Copy</button><button class="btn ghost sm" id="clear-q">Clear</button>`:""}</span></div>
       <p class="sub" style="margin:0">Built from your notes, the verses you cited, and their cross-references. Moves from what the text says, to what it means, to how it connects, to how to live it.</p>
       <div><button class="btn primary" id="build-q" ${(n.body||"").trim().length<20&&!refs.length?"disabled":""}>${qs.length?"Build a fresh set":"Build questions"}</button> <span id="q-status" class="sub"></span></div>
       ${kinds.map(k=>`<div class="qgroup"><h4>${esc(k)}</h4>${qs.filter(q=>q.kind===k).map(qHtml).join("")}</div>`).join("")}
@@ -1133,9 +1210,10 @@ function setAiLabel(){$("#ai-label").textContent=AVAIL.claude?"Question builder:
 
 /* ---------- Boot ---------- */
 (async function boot(){
+  const shareCode=location.hash.startsWith("#share=")?location.hash.slice(7):null; if(shareCode)history.replaceState(null,"","#notes");
   const h=location.hash.slice(1); show(["read","search","notes"].includes(h)?h:"read");
   $("#study-body").innerHTML=studyIntro(); if(window.innerWidth>860)$("#study").classList.remove("closed");
-  store.init();
+  await store.init(); if(shareCode){hideWho();await openShared(shareCode);}
   try{const r=await fetch("api/bible?status=1");if(r.ok)Object.assign(AVAIL,await r.json());}catch(e){}
   setAiLabel(); fillVersionMenus(); if(S.view==="read")renderChapter();
   // Open with a verse selected so the study margin shows what it does
