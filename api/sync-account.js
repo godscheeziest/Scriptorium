@@ -17,8 +17,12 @@ function tooMany(ip) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { error: "Use POST." });
-  const key = process.env.SUPABASE_SECRET_KEY;
+  const key = (process.env.SUPABASE_SECRET_KEY || "").trim();
   if (!key) return sendJson(res, 503, { error: "not_configured" });
+  if (/[^\x21-\x7e]/.test(key)) {
+    // A pasted key that went through a notes app often has a long dash or curly quote in it.
+    return sendJson(res, 502, { error: "The Supabase secret key saved in Vercel has a character that can't be in a key (often a long dash from copying through another app). Copy it again straight from Supabase into Vercel, then redeploy." });
+  }
   const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
   if (tooMany(ip)) return sendJson(res, 429, { error: "Too many tries just now. Wait a few minutes and try again." });
 
