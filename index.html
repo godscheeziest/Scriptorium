@@ -45,6 +45,26 @@ button{cursor:pointer}
 .tab svg{width:18px;height:18px;flex:none}
 .tab:hover{background:var(--soft);color:var(--ink)}
 .tab[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.who-btn{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:4px 12px 4px 4px;font-weight:600;font-size:13px;max-width:100%;min-width:0}
+.who-btn .av{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.who-btn .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who{position:fixed;inset:0;z-index:60;background:var(--paper);overflow:auto;padding-block:max(32px,env(safe-area-inset-top,0px)) 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.who-in{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.who h1{font-family:var(--scripture);font-size:34px;margin:0;font-weight:600;letter-spacing:-.015em}
+.who .tag{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pcard{display:flex;align-items:center;gap:12px;border:1px solid var(--rule);background:var(--panel);border-radius:10px;padding:12px 14px;text-align:left;width:100%}
+.pcard:hover{border-color:var(--accent)}
+.pcard .av{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex:none}
+.pcard .nm{font-weight:700;font-size:16px}
+.pcard .meta{font-size:12.5px;color:var(--muted)}
+.pcard .lock{margin-left:auto;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:4px}
+.who form,.who .box{display:flex;flex-direction:column;gap:10px;border:1px solid var(--rule);background:var(--panel);border-radius:10px;padding:14px}
+.who label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.who input[type=text],.who input[type=password]{font-size:16px;padding:9px 11px}
+.who .row{display:flex;gap:8px;flex-wrap:wrap}
+.who .err{color:var(--rubric);font-size:13px;font-weight:600}
+.who .fine{font-size:12.5px;color:var(--muted)}
 .rail-foot{margin-top:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 .status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:6px;vertical-align:1px}
 .status-dot.on{background:var(--ok)}
@@ -194,6 +214,8 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
   .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
   .rail{flex-direction:row;align-items:center;border-right:0;border-bottom:1px solid var(--rule);padding:10px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));gap:12px}
   .brand small,.rail-foot{display:none}
+  .who-btn .nm{display:none}
+  .who-btn{padding:3px;order:3}
   .tabs{flex-direction:row;margin-left:auto}
   .tab span{display:none}
   .study{position:fixed;left:0;right:0;bottom:0;max-height:72%;border-left:0;border-top:1px solid var(--rule);box-shadow:0 -8px 30px #0003;z-index:30;border-radius:14px 14px 0 0;padding-bottom:calc(30px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px))}
@@ -222,6 +244,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
       <button class="tab" data-view="search" id="tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Concordance</span></button>
       <button class="tab" data-view="notes" id="tab-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Sermon notes</span></button>
     </div>
+    <button class="who-btn" id="who-btn" type="button" title="Switch person"><span class="av" id="who-av">?</span><span class="nm" id="who-nm">Choose profile</span></button>
     <div class="rail-foot">
       <div><span class="status-dot" id="store-dot"></span><span id="store-label">Connecting…</span></div>
       <div id="ai-label">Question builder: checking…</div>
@@ -284,6 +307,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
   </aside>
 </div>
 <div class="pickbar" id="pickbar" hidden><span class="n" id="pick-n"></span><button class="btn primary sm" id="pick-add">Add to note</button><button class="btn ghost sm" id="pick-copy">Copy</button><button class="btn ghost sm" id="pick-done">Done</button></div>
+<div class="who" id="who" hidden role="dialog" aria-modal="true" aria-label="Choose who is studying"><div class="who-in" id="who-in"></div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -579,22 +603,139 @@ function drawHits(){
     ${!hits.length?`<p class="empty">No verses in ${ver} use that wording. Try another version, or turn off “Whole words”.</p>`:""}`;
 }
 
-/* ---------- Notes store: saved in this browser, with backup/restore files ---------- */
-const LOCAL_KEY="scr-notes";
+/* ---------- Profiles: each person's notes, kept on this device, optionally locked with a password ---------- */
+const PROFILES_KEY="scr-profiles", OLD_NOTES_KEY="scr-notes";
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deriveKey(pw,salt){const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);}
+async function encJSON(key,obj){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(JSON.stringify(obj)));return {iv:b64(iv),ct:b64(ct)};}
+async function decJSON(key,box){const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(box.iv)},key,unb64(box.ct));return JSON.parse(new TextDecoder().decode(pt));}
+const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+function profiles(){try{return JSON.parse(ls.get(PROFILES_KEY)||"[]");}catch(e){return [];}}
+function saveProfiles(list){ls.set(PROFILES_KEY,JSON.stringify(list));}
+const notesKey=id=>"scr-notes-"+id;
 const store={
-  mode:"local",
-  async init(){this.loadLocal();setStoreLabel();},
-  loadLocal(){try{S.notes=JSON.parse(localStorage.getItem(LOCAL_KEY)||"[]");}catch(e){S.notes=[];}S.notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));onNotesChanged();},
-  persist(){try{localStorage.setItem(LOCAL_KEY,JSON.stringify(S.notes));}catch(e){toast("Couldn't save. Your browser storage may be full or blocked.");}},
-  async save(n){n.updatedAt=Date.now();const i=S.notes.findIndex(x=>x.id===n.id);if(i<0)S.notes.unshift(n);else S.notes[i]=n;this.persist();onNotesChanged();},
-  async remove(id){S.notes=S.notes.filter(n=>n.id!==id);this.persist();onNotesChanged();}
+  mode:"local", profile:null, key:null, writing:Promise.resolve(),
+  async init(){
+    try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}
+    let list=profiles();
+    const old=ls.get(OLD_NOTES_KEY);
+    if(!list.length&&old){ // notes saved before profiles existed become the first profile
+      const pr={id:newId(),name:"My notes",created:Date.now()};list=[pr];saveProfiles(list);ls.set(notesKey(pr.id),old);ls.del(OLD_NOTES_KEY);}
+    let last=null;try{last=sessionStorage.getItem("scr-who")||ls.get("scr-who-last");}catch(e){}
+    const lastP=list.find(x=>x.id===last);
+    if(lastP&&!lastP.salt){await this.open(lastP,null);return;}
+    if(list.length===1&&!list[0].salt){await this.open(list[0],null);return;}
+    S.notes=[];onNotesChanged();showWho();
+  },
+  async open(pr,key){
+    const raw=ls.get(notesKey(pr.id));let notes=[];
+    if(raw){const v=JSON.parse(raw);notes=Array.isArray(v)?v:await decJSON(key,v);}
+    this.profile=pr;this.key=key;S.notes=notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));S.activeNote=null;
+    try{sessionStorage.setItem("scr-who",pr.id);}catch(e){} ls.set("scr-who-last",pr.id);
+    paintWhoBtn();setStoreLabel();hideWho();onNotesChanged();if(S.view==="notes")renderNotes();if(S.view==="read")renderChapter();
+  },
+  close(){this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
+  persist(){
+    if(!this.profile){toast("Choose a profile first to save notes.");showWho();return;}
+    const pr=this.profile,key=this.key,data=S.notes.slice();
+    this.writing=this.writing.then(async()=>{
+      const val=key?JSON.stringify(await encJSON(key,data)):JSON.stringify(data);
+      if(!ls.set(notesKey(pr.id),val)){toast("Couldn't save. Your browser storage may be full or blocked.");setSaveState("Not saved: browser storage is full or blocked.",true);}
+    }).catch(e=>{console.warn(e);setSaveState("Not saved: "+e.message,true);});
+    return this.writing;
+  },
+  async save(n){n.updatedAt=Date.now();const i=S.notes.findIndex(x=>x.id===n.id);if(i<0)S.notes.unshift(n);else S.notes[i]=n;await this.persist();onNotesChanged();},
+  async remove(id){S.notes=S.notes.filter(n=>n.id!==id);await this.persist();onNotesChanged();}
 };
+const initial=n=>(n||"?").trim().charAt(0).toUpperCase()||"?";
+function paintWhoBtn(){const pr=store.profile;$("#who-av").textContent=pr?initial(pr.name):"?";$("#who-nm").textContent=pr?pr.name:"Choose profile";$("#who-btn").title=pr?`Signed in as ${pr.name}. Switch person`:"Choose who is studying";}
+function hideWho(){$("#who").hidden=true;}
+function showWho(view,arg){
+  const el=$("#who-in"),list=profiles(),cur=store.profile;$("#who").hidden=false;
+  const lockSvg='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  const count=pr=>{if(pr.salt)return "Locked with a password";try{const v=JSON.parse(ls.get(notesKey(pr.id))||"[]");return Array.isArray(v)?`${v.length} note${v.length===1?"":"s"}`:"";}catch(e){return "";}};
+  if(view==="unlock"){const pr=arg;
+    el.innerHTML=`<div class="tag">Scriptorium</div><h1>Welcome back, ${esc(pr.name)}</h1>
+    <form id="who-unlock" data-id="${pr.id}"><label>Password<input type="password" id="who-pw" autocomplete="current-password" required></label><div class="err" id="who-err" aria-live="polite"></div>
+    <div class="row"><button class="btn primary">Open my notes</button><button class="btn ghost" type="button" data-who="list">Back</button></div></form>
+    <p class="fine">Forgot it? The password can't be recovered, because it's what unlocks your notes. You can delete this profile from its menu and start a new one.</p>`;
+    setTimeout(()=>$("#who-pw")?.focus(),30);return;}
+  if(view==="new"){
+    el.innerHTML=`<div class="tag">Scriptorium</div><h1>New profile</h1>
+    <form id="who-new"><label>Your name<input type="text" id="who-name" maxlength="40" autocomplete="given-name" required placeholder="e.g. Sarah"></label>
+    <label>Password <span class="fine" style="font-weight:400">(optional)</span><input type="password" id="who-pw" autocomplete="new-password" placeholder="Leave empty for no password"></label>
+    <label id="who-pw2-l" hidden>Type it again<input type="password" id="who-pw2" autocomplete="new-password"></label>
+    <div class="err" id="who-err" aria-live="polite"></div>
+    <div class="row"><button class="btn primary">Create profile</button>${list.length?'<button class="btn ghost" type="button" data-who="list">Back</button>':""}</div></form>
+    <p class="fine">Your notes stay on this device only. With a password, they're encrypted, so other people using this device can't open them. Without one, anyone using this device can open your profile.</p>`;
+    $("#who-pw").addEventListener("input",e=>{$("#who-pw2-l").hidden=!e.target.value;});
+    setTimeout(()=>$("#who-name")?.focus(),30);return;}
+  if(view==="manage"&&cur){
+    el.innerHTML=`<div class="tag">Signed in as</div><h1>${esc(cur.name)}</h1>
+    <form id="who-rename"><label>Name<input type="text" id="who-name" maxlength="40" value="${esc(cur.name)}" required></label><div class="row"><button class="btn">Save name</button></div></form>
+    <form id="who-setpw"><label>${cur.salt?"New password":"Add a password"}<input type="password" id="who-pw" autocomplete="new-password" placeholder="${cur.salt?"Leave empty to remove the password":""}"></label>
+      <label>Type it again<input type="password" id="who-pw2" autocomplete="new-password"></label><div class="err" id="who-err" aria-live="polite"></div>
+      <div class="row"><button class="btn">${cur.salt?"Change or remove password":"Add password"}</button></div></form>
+    <div class="box"><b>Delete this profile</b><span class="fine">Deletes ${esc(cur.name)}'s notes from this device. Back them up first if you want to keep them.</span><div class="row"><button class="btn" id="who-del" type="button">Delete profile and notes</button></div></div>
+    <div class="row"><button class="btn primary" type="button" data-who="close">Done</button><button class="btn ghost" type="button" data-who="list">Switch person</button></div>`;return;}
+  el.innerHTML=`<div class="tag">Scriptorium · Hear it. Study it. Grow deeper.</div><h1>Who's studying?</h1>
+    ${list.length?`<div class="plist">${list.map(pr=>`<button class="pcard" data-open="${pr.id}"><span class="av">${esc(initial(pr.name))}</span><span><span class="nm">${esc(pr.name)}</span><br><span class="meta">${esc(count(pr))}</span></span>${pr.salt?`<span class="lock">${lockSvg}</span>`:""}</button>`).join("")}</div>`:`<p class="fine" style="font-size:14px">Make a profile so your sermon notes, answers and questions stay together and separate from anyone else who uses this device.</p>`}
+    <div class="row"><button class="btn primary" type="button" data-who="new">+ New profile</button>${!list.length?'<button class="btn" type="button" data-who="guest">Just start, no profile name</button>':""}${cur?`<button class="btn ghost" type="button" data-who="manage">Manage ${esc(cur.name)}</button><button class="btn ghost" type="button" data-who="close">Back to ${esc(cur.name)}'s notes</button>`:""}</div>
+    <p class="fine">Profiles and notes are saved on this device only. Use “Back up notes” to keep a copy or move notes to another device.</p>`;
+}
+$("#who-btn").addEventListener("click",()=>showWho(store.profile?"manage":"list"));
+$("#who").addEventListener("click",async e=>{
+  const t=e.target.closest("[data-who],[data-open],#who-del");if(!t)return;
+  if(t.dataset.open){const pr=profiles().find(x=>x.id===t.dataset.open);if(!pr)return;flushSave();if(pr.salt)showWho("unlock",pr);else await store.open(pr,null);return;}
+  const w=t.dataset.who;
+  if(w==="list"){flushSave();showWho("list");}
+  else if(w==="new")showWho("new");
+  else if(w==="close"){if(store.profile)hideWho();}
+  else if(w==="manage")showWho("manage");
+  else if(w==="guest"){const pr={id:newId(),name:"Guest",created:Date.now()};saveProfiles([...profiles(),pr]);await store.open(pr,null);}
+  if(t.id==="who-del"){if(!t.dataset.confirm){t.dataset.confirm="1";t.textContent="Tap again to delete for good";return;}
+    const id=store.profile.id;ls.del(notesKey(id));saveProfiles(profiles().filter(x=>x.id!==id));store.close();showWho("list");toast("Profile deleted");}
+});
+$("#who").addEventListener("submit",async e=>{
+  e.preventDefault();const f=e.target,err=$("#who-err");const setErr=m=>{if(err)err.textContent=m;};
+  if(f.id==="who-new"){
+    const name=$("#who-name").value.trim(),pw=$("#who-pw").value;if(!name)return setErr("Enter a name.");
+    if(profiles().some(x=>x.name.toLowerCase()===name.toLowerCase()))return setErr("There's already a profile with that name on this device.");
+    if(pw&&pw!==$("#who-pw2").value)return setErr("The two passwords don't match.");
+    if(pw&&pw.length<4)return setErr("Use at least 4 characters, or leave the password empty.");
+    const pr={id:newId(),name,created:Date.now()};let key=null;
+    if(pw){const salt=crypto.getRandomValues(new Uint8Array(16));key=await deriveKey(pw,salt);pr.salt=b64(salt);pr.check=await encJSON(key,"ok");ls.set(notesKey(pr.id),JSON.stringify(await encJSON(key,[])));}
+    saveProfiles([...profiles(),pr]);await store.open(pr,key);toast(`Welcome, ${name}`);
+  }
+  if(f.id==="who-rename"&&store.profile){const name=$("#who-name").value.trim();if(!name)return;
+    const list=profiles().map(x=>x.id===store.profile.id?{...x,name}:x);saveProfiles(list);store.profile={...store.profile,name};paintWhoBtn();toast("Name saved");showWho("manage");}
+  if(f.id==="who-setpw"&&store.profile){const pw=$("#who-pw").value;
+    if(pw&&pw!==$("#who-pw2").value)return setErr("The two passwords don't match.");
+    if(pw&&pw.length<4)return setErr("Use at least 4 characters.");
+    if(!pw&&!store.profile.salt)return setErr("Type a password to add.");
+    flushSave();await store.writing;let pr={...store.profile},key=null;
+    if(pw){const salt=crypto.getRandomValues(new Uint8Array(16));key=await deriveKey(pw,salt);pr.salt=b64(salt);pr.check=await encJSON(key,"ok");}
+    else{delete pr.salt;delete pr.check;}
+    saveProfiles(profiles().map(x=>x.id===pr.id?pr:x));store.profile=pr;store.key=key;await store.persist();
+    toast(pw?"Password saved. Your notes are now locked on this device.":"Password removed");showWho("manage");}
+});
+// Unlock form: find the profile from the heading context
+$("#who").addEventListener("submit",async e=>{
+  if(e.target.id!=="who-unlock")return;
+  const pr=profiles().find(x=>x.id===e.target.dataset.id);if(!pr)return;
+  const pw=$("#who-pw").value;const btn=e.target.querySelector("button.primary");btn.disabled=true;$("#who-err").textContent="";
+  try{const key=await deriveKey(pw,unb64(pr.salt));await decJSON(key,pr.check);await store.open(pr,key);}
+  catch(x){$("#who-err").textContent="That password isn't right. Try again.";btn.disabled=false;$("#who-pw").select();}
+});
 $("#export-notes").addEventListener("click",()=>{
+  if(!store.profile){showWho();return;} flushSave();
   const blob=new Blob([JSON.stringify({app:"scriptorium",version:1,exported:new Date().toISOString(),notes:S.notes},null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`scriptorium-notes-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`scriptorium-${(store.profile.name||"notes").replace(/[^\w-]+/g,"-")}-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
 $("#import-file").addEventListener("change",async e=>{
-  const f=e.target.files[0]; if(!f)return;
+  const f=e.target.files[0]; if(!f)return; if(!store.profile){showWho();e.target.value="";return;}
   try{const j=JSON.parse(await f.text());const incoming=Array.isArray(j)?j:j.notes; if(!Array.isArray(incoming))throw 0;
     let added=0,updated=0; incoming.forEach(n=>{if(!n||!n.id)return;const i=S.notes.findIndex(x=>x.id===n.id);
       if(i<0){S.notes.push(n);added++;}else if((n.updatedAt||0)>(S.notes[i].updatedAt||0)){S.notes[i]=n;updated++;}});
@@ -603,7 +744,7 @@ $("#import-file").addEventListener("change",async e=>{
   catch(x){toast("That file isn't a Scriptorium backup.");}
   e.target.value="";
 });
-function setStoreLabel(){$("#store-dot").classList.add("on");$("#store-label").textContent="Notes saved in this browser";}
+function setStoreLabel(){const pr=store.profile;$("#store-dot").classList.toggle("on",!!pr);$("#store-label").textContent=pr?`${pr.name}'s notes · saved on this device${pr.salt?", locked":""}`:"No profile open";}
 function setSaveState(msg,err){const s=$("#save-state");if(!s)return;s.textContent=msg;s.classList.toggle("err",!!err);}
 function onNotesChanged(){
   if(S.view==="notes"){renderNoteList();const ed=$("#editor");const ae=document.activeElement;
@@ -672,7 +813,7 @@ function renderNoteList(){
   el.innerHTML=S.notes.map(n=>`<button class="note-item${n.id===S.activeNote?" on":""}" data-id="${n.id}"><span class="tt">${esc(n.title||"Untitled")}</span><span class="mm">${esc([n.passage,n.date].filter(Boolean).join(" · "))}</span></button>`).join("");
 }
 $("#note-list").addEventListener("click",e=>{const b=e.target.closest(".note-item");if(!b)return;flushSave();S.activeNote=b.dataset.id;renderNotes();});
-$("#new-note").addEventListener("click",async()=>{flushSave();const n=blankNote();S.activeNote=n.id;await store.save(n);renderNotes();$(".title-in")?.focus();});
+$("#new-note").addEventListener("click",async()=>{if(!store.profile){showWho();return;}flushSave();const n=blankNote();S.activeNote=n.id;await store.save(n);renderNotes();$(".title-in")?.focus();});
 function collectRefs(n){const seen=new Set();return [...parseRefs(n.passage||""),...parseRefs(n.body||"")].filter(r=>{const k=refLabel(r);if(seen.has(k))return false;seen.add(k);return true;}).map(({b,c,v1,v2})=>({b,c,v1,v2}));}
 
 function renderEditor(){
