@@ -246,6 +246,20 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .copyright{font-size:11.5px;color:var(--muted);max-width:65ch;margin-top:18px;line-height:1.45}
 .backup{display:flex;gap:6px;flex-wrap:wrap}
 .pass{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.about{position:fixed;inset:0;z-index:62;background:var(--paper);overflow:auto;padding-block:max(28px,env(safe-area-inset-top,0px)) 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.about-in{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.about h1{font-family:var(--scripture);font-size:32px;margin:0;font-weight:600;letter-spacing:-.015em}
+.about h2{font-family:var(--scripture);font-size:20px;margin:14px 0 0;font-weight:600}
+.about .tag{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.about dl{margin:0;display:flex;flex-direction:column;gap:0;border-top:1px solid var(--rule)}
+.about dl>div{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr);gap:4px 18px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.about dt{font-weight:700;font-size:14px}
+.about dd{margin:0;font-size:14px;line-height:1.5;color:var(--ink)}
+.about dd small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.about a{color:var(--accent);font-weight:600;overflow-wrap:anywhere}
+.about .note{font-size:13px;color:var(--muted);line-height:1.5}
+.about .close{position:sticky;top:0;align-self:flex-end;z-index:2}
+@media (max-width:600px){.about dl>div{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -264,7 +278,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
       <div id="ai-label">Question builder: checking…</div>
       <div><button class="btn ghost sm" id="help-btn" type="button">How it works</button></div>
       <div class="backup"><button class="btn sm" id="export-notes">Back up notes</button><label class="btn sm" for="import-file">Restore</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
-      <div>Built in: BSB, KJV, ASV, YLT, BBE, Geneva 1599 (public domain). <span id="lic-label"></span> Cross-references: OpenBible.info (CC-BY). Lexicon: Strong's.</div>
+      <div><span id="lic-label"></span> <button class="btn ghost sm" id="about-btn" type="button">About &amp; sources</button></div>
     </div>
   </nav>
 
@@ -327,6 +341,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 <div class="tour" id="tour" hidden role="dialog" aria-label="How Scriptorium works"></div>
 <div class="who" id="shared" hidden role="dialog" aria-modal="true" aria-label="Shared questions"><div class="who-in" id="shared-in"></div></div>
 <div class="who" id="who" hidden role="dialog" aria-modal="true" aria-label="Choose who is studying"><div class="who-in" id="who-in"></div></div>
+<div class="about" id="about" hidden role="dialog" aria-modal="true" aria-label="About and sources"><div class="about-in" id="about-in"></div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -746,11 +761,11 @@ function showWho(view,arg){
       <label>Type it again<input type="password" id="who-pw2" autocomplete="new-password"></label><div class="err" id="who-err" aria-live="polite"></div>
       <div class="row"><button class="btn">${cur.salt?"Change or remove password":"Add password"}</button></div></form>
     <div class="box"><b>Delete this profile</b><span class="fine">Deletes ${esc(cur.name)}'s notes from this device. Back them up first if you want to keep them.</span><div class="row"><button class="btn" id="who-del" type="button">Delete profile and notes</button></div></div>
-    <div class="row"><button class="btn primary" type="button" data-who="close">Done</button><button class="btn ghost" type="button" data-who="list">Switch person</button><button class="btn ghost" type="button" data-who="tour">How it works</button></div>`;return;}
+    <div class="row"><button class="btn primary" type="button" data-who="close">Done</button><button class="btn ghost" type="button" data-who="list">Switch person</button><button class="btn ghost" type="button" data-who="tour">How it works</button><button class="btn ghost" type="button" data-who="about">About &amp; sources</button></div>`;return;}
   el.innerHTML=`<div class="tag">Scriptorium · Hear it. Study it. Grow deeper.</div><h1>Who's studying?</h1>
     ${list.length?`<div class="plist">${list.map(pr=>`<button class="pcard" data-open="${pr.id}"><span class="av">${esc(initial(pr.name))}</span><span><span class="nm">${esc(pr.name)}</span><br><span class="meta">${esc(count(pr))}</span></span>${pr.salt?`<span class="lock">${lockSvg}</span>`:""}</button>`).join("")}</div>`:`<p class="fine" style="font-size:14px">Make a profile so your sermon notes, answers and questions stay together and separate from anyone else who uses this device.</p>`}
     <div class="row"><button class="btn primary" type="button" data-who="new">+ New profile</button>${!list.length?'<button class="btn" type="button" data-who="guest">Just start, no profile name</button>':""}${cur?`<button class="btn ghost" type="button" data-who="manage">Manage ${esc(cur.name)}</button><button class="btn ghost" type="button" data-who="close">Back to ${esc(cur.name)}'s notes</button>`:""}</div>
-    <p class="fine">Profiles and notes are saved on this device only. Use “Back up notes” to keep a copy or move notes to another device.</p>`;
+    <p class="fine">Profiles and notes are saved on this device only. Use “Back up notes” to keep a copy or move notes to another device. <button class="btn ghost sm" type="button" data-who="about">About &amp; sources</button></p>`;
 }
 $("#who-btn").addEventListener("click",()=>showWho(store.profile?"manage":"list"));
 $("#who").addEventListener("click",async e=>{
@@ -762,6 +777,7 @@ $("#who").addEventListener("click",async e=>{
   else if(w==="close"){if(store.profile)hideWho();}
   else if(w==="manage")showWho("manage");
   else if(w==="tour"){hideWho();showTour(0);}
+  else if(w==="about"){showAbout();}
   else if(w==="guest"){const pr={id:newId(),name:"Guest",created:Date.now()};saveProfiles([...profiles(),pr]);await store.open(pr,null);}
   if(t.id==="who-del"){if(!t.dataset.confirm){t.dataset.confirm="1";t.textContent="Tap again to delete for good";return;}
     const id=store.profile.id;ls.del(notesKey(id));saveProfiles(profiles().filter(x=>x.id!==id));store.close();showWho("list");toast("Profile deleted");}
@@ -1208,6 +1224,41 @@ Application: What am I trying to produce on my own this week?`})}
 /* ---------- AI availability ---------- */
 function setAiLabel(){$("#ai-label").textContent=AVAIL.claude?"Question builder: Claude":"Question builder: built-in templates (add ANTHROPIC_API_KEY for Claude)";}
 
+/* ---------- About & sources ---------- */
+const L=(href,t)=>`<a href="${href}" target="_blank" rel="noopener">${t||href.replace(/^https?:\/\//,"")}</a>`;
+function aboutHtml(){
+  const row=(dt,dd)=>`<div><dt>${dt}</dt><dd>${dd}</dd></div>`;
+  const lic=(typeof COPY!=="undefined")?COPY:{};
+  const remote=(typeof AVAIL!=="undefined")?["ESV","NLT"].filter(k=>AVAIL[k]):[];
+  return `<button class="btn close" type="button" data-about="close">Close</button>
+  <div class="tag">Scriptorium · Hear it. Study it. Grow deeper.</div><h1>About &amp; sources</h1>
+  <p class="note">Scriptorium is built on the work of many translators, scholars and volunteers. These are the texts and data it uses, with their licenses.</p>
+  <h2>Bible translations</h2><dl>
+  ${row("Berean Standard Bible (BSB)",`The Holy Bible, Berean Standard Bible, BSB. Copyright ©2016, 2020 by Bible Hub. Dedicated to the public domain in 2023. ${L("https://berean.bible")}`)}
+  ${row("King James Version (KJV)","1769 Oxford edition. Public domain (the text remains under Crown copyright in the United Kingdom).")}
+  ${row("American Standard Version (ASV)","1901. Public domain.")}
+  ${row("Young's Literal Translation (YLT)","Robert Young, revised edition 1898. Public domain.")}
+  ${row("Bible in Basic English (BBE)","S. H. Hooke, 1949/1964. Public domain.")}
+  ${row("Geneva Bible (GNV)","1599 edition. Public domain.")}
+  ${row("Digital texts",`Prepared by the Scrollmapper Bible Databases project. ${L("https://github.com/scrollmapper/bible_databases")}`)}
+  ${remote.map(k=>row(k==="ESV"?"English Standard Version (ESV)":"New Living Translation (NLT)",`${esc(lic[k]||"")}<small>Text supplied live by the ${k==="ESV"?"ESV API from Crossway "+L("https://api.esv.org"):"NLT API from Tyndale House "+L("https://api.nlt.to")}, for non-commercial use. It is not stored by this app.</small>`)).join("")}
+  </dl>
+  <h2>Study tools</h2><dl>
+  ${row("Cross-references",`OpenBible.info Cross References, licensed under Creative Commons Attribution (CC BY). ${L("https://www.openbible.info/labs/cross-references/")}<small>This app shows up to 14 of the highest-voted references for each verse.</small>`)}
+  ${row("Strong's lexicon",`James Strong, <i>Dictionary of Greek Words</i> (1890) and <i>A Concise Dictionary of the Words in the Hebrew Bible</i> (1894), public domain. Digital edition © Open Scriptures, licensed CC BY-SA. ${L("https://github.com/openscriptures/strongs")}<small>Greek XML prepared by Ulrik Petersen; Hebrew from data by David Instone-Brewer, edited by David Troidl. The lexicon file in this app is a reformatted extract and is shared under the same CC BY-SA license.</small>`)}
+  ${row("Word study matching","Words are matched to Strong's entries by their KJV renderings, so results are a guide, not an exact tag of the word in each verse.")}
+  ${row("Discussion questions",`Written by Claude, an AI model from Anthropic, from your notes and the verses you cite. ${L("https://www.anthropic.com")}<small>AI can make mistakes. Check questions against Scripture before using them with a group. When Claude isn't available, the app uses its own built-in questions.</small>`)}
+  </dl>
+  <h2>Design and software</h2><dl>
+  ${row("Fonts",`Literata and Hanken Grotesk, SIL Open Font License, via Google Fonts. ${L("https://fonts.google.com")}`)}
+  ${row("Word and PDF export",`JSZip and jsPDF, both MIT licensed. ${L("https://stuk.github.io/jszip/","jszip")} · ${L("https://github.com/parallax/jsPDF","jsPDF")}`)}
+  </dl>
+  <h2>Your notes</h2>
+  <p class="note">${typeof profiles==="function"?"Notes, answers and profiles are saved only on the device you use. Passwords encrypt a profile's notes on that device and can't be recovered if forgotten. Shared question links carry only the questions, never your notes or answers.":"Notes and answers are saved to your Claude account and are private to you."}</p>`;}
+function showAbout(){$("#about-in").innerHTML=aboutHtml();$("#about").hidden=false;$("#about .close").focus();}
+$("#about").addEventListener("click",e=>{if(e.target.closest('[data-about="close"]'))$("#about").hidden=true;});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#about").hidden)$("#about").hidden=true;});
+$("#about-btn").addEventListener("click",showAbout);
 /* ---------- Boot ---------- */
 (async function boot(){
   const shareCode=location.hash.startsWith("#share=")?location.hash.slice(7):null; if(shareCode)history.replaceState(null,"","#notes");

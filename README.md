@@ -9,7 +9,7 @@ A Bible study and sermon-notes app: read and compare translations, look up cross
 | App (one page) | `index.html` | Plain HTML/JS, no build step |
 | Built-in Bibles | `data/BSB.json`, `KJV.json`, `ASV.json`, `YLT.json`, `BBE.json`, `GNV.json` | Public domain, bundled |
 | Cross-references | `data/xref.json` | OpenBible.info, CC-BY |
-| Strong's lexicon | `data/lexicon.json` | Public domain (via openscriptures/strongs) |
+| Strong's lexicon | `data/lexicon.json` | Strong's dictionaries (public domain); digital edition © Open Scriptures, CC BY-SA, so this file is shared under CC BY-SA too |
 | ESV and NLT | `api/bible.js`, `lib/licensed.js` | Fetched live from Crossway and Tyndale with your keys. Never stored |
 | Discussion questions | `api/questions.js` | Calls Claude with your Anthropic key and streams questions back |
 
