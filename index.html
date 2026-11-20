@@ -63,6 +63,8 @@ button{cursor:pointer}
 .who label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
 .who input[type=text],.who input[type=password]{font-size:16px;padding:9px 11px}
 .who .row{display:flex;gap:8px;flex-wrap:wrap}
+.who form.row{flex-direction:row;flex-wrap:wrap;align-items:center}
+.who form.row .btn{flex:none}
 .who .err{color:var(--rubric);font-size:13px;font-weight:600}
 .who .fine{font-size:12.5px;color:var(--muted)}
 .fs-btn{align-self:flex-start}
@@ -360,6 +362,9 @@ const BOOKS=["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Ju
 const VERSIONS={BSB:"Berean Standard Bible",KJV:"King James Version",ASV:"American Standard Version",YLT:"Young's Literal Translation",BBE:"Bible in Basic English",GNV:"Geneva Bible (1599)",ESV:"English Standard Version",NLT:"New Living Translation"};
 const LOCAL=["BSB","KJV","ASV","YLT","BBE","GNV"]; const REMOTE=["ESV","NLT"];
 const AVAIL={ESV:false,NLT:false,claude:false,passcode:false}; const COPY={};
+const SITE={ESV:false,NLT:false};          // keys set by the site owner in Vercel
+const MYKEYS={ESV:"",NLT:""};              // this person's own keys, from Settings (kept on this device)
+function refreshAvail(){REMOTE.forEach(k=>{AVAIL[k]=!!(SITE[k]||MYKEYS[k]);});}
 const usable=()=>[...LOCAL,...REMOTE.filter(k=>AVAIL[k])];
 const ALIAS={0:"gen ge gn",1:"exod exo ex",2:"lev le lv",3:"num nu nm nb",4:"deut dt de",5:"josh jos",6:"judg jdg",7:"ru rth",14:"ezr",15:"neh ne",16:"esth est es",17:"jb",18:"psalm ps psa pss",19:"prov pro pr prv",20:"eccl ecc qoh eccles",21:"song sos songs|song of songs|canticles",22:"isa is",23:"jer je",24:"lam la",25:"ezek eze ezk",26:"dan da dn",27:"hos ho",28:"jl",29:"am",30:"obad ob",31:"jon jnh",32:"mic mi",33:"nah na",34:"hab",35:"zeph zep",36:"hag",37:"zech zec",38:"mal",39:"matt mt mat",40:"mk mrk mar",41:"lk luk",42:"jn jhn joh",43:"ac",44:"rom ro rm",47:"gal ga",48:"eph",49:"phil php",50:"col",55:"tit",56:"phlm philem phm",57:"heb",58:"jas jm",64:"jud",65:"rev re revelations|revelation of john"};
 const NUMBERED={"Samuel":"sam sa sm","Kings":"kgs ki kin","Chronicles":"chr chron ch","Corinthians":"cor co","Thessalonians":"thess thes th","Timothy":"tim ti","Peter":"pet pe pt","John":"jn jhn joh"};
@@ -397,8 +402,12 @@ const cache={};
 function load(name){ if(!cache[name]) cache[name]=fetch("data/"+name+".json").then(r=>{if(!r.ok)throw new Error(name);return r.json();}); return cache[name]; }
 function passcode(){try{return localStorage.getItem("scr-pass")||"";}catch(e){return "";}}
 async function api(url,opts={}){
-  const r=await fetch(url,{...opts,headers:{...(opts.headers||{}),"x-app-passcode":passcode()}});
-  if(r.status===401){askPasscode();throw new Error("This app needs its passcode. Enter it in the box at the top of the page.");}
+  const h={...(opts.headers||{}),"x-app-passcode":passcode()};
+  const m=url.match(/[?&]v=(ESV|NLT)\b/); const own=m&&(opts.key!==undefined?opts.key:MYKEYS[m[1]]);
+  if(own)h["x-"+m[1].toLowerCase()+"-key"]=own;
+  const r=await fetch(url,{...opts,headers:h});
+  if(r.status===401){const j=await r.clone().json().catch(()=>({}));
+    if(j.error==="passcode_required"){askPasscode();throw new Error("This app needs its passcode, or add your own key in Settings. Enter the passcode in the box at the top of the page.");}}
   return r;
 }
 function askPasscode(){ if($("#pass-box"))return; const box=document.createElement("div");box.id="pass-box";box.className="notice";box.style.margin="0 0 16px";
@@ -456,11 +465,11 @@ function fillSelectors(bible){
 }
 function fillVersionMenus(){
   const keys=usable(); if(!keys.includes(S.ver))S.ver="BSB"; if(S.par&&!keys.includes(S.par))S.par="";
-  const vo=keys.map(k=>`<option value="${k}">${k} · ${VERSIONS[k]}</option>`).join("");
+  const vo=keys.map(k=>`<option value="${k}">${k} · ${VERSIONS[k]}</option>`).join("")+REMOTE.filter(k=>!AVAIL[k]).map(k=>`<option value="+${k}">${k} · add your key in Settings…</option>`).join("");
   $("#sel-ver").innerHTML=vo; $("#sel-par").innerHTML='<option value="">Compare: off</option>'+keys.map(k=>`<option value="${k}">Compare: ${k}</option>`).join("");
   const qv=$("#q-ver").value; $("#q-ver").innerHTML=keys.filter(k=>k!=="NLT").map(k=>`<option value="${k}">${k}${k==="ESV"?" (via Crossway)":""}</option>`).join(""); if(qv)$("#q-ver").value=qv;
   $("#sel-ver").value=S.ver;$("#sel-par").value=S.par;
-  const lic=REMOTE.filter(k=>AVAIL[k]); $("#lic-label").textContent=lic.length?`Licensed: ${lic.join(", ")} (fetched live, non-commercial use).`:"ESV and NLT appear once their API keys are added.";
+  const lic=REMOTE.filter(k=>AVAIL[k]); $("#lic-label").textContent=lic.length?`Licensed: ${lic.join(", ")} (fetched live, non-commercial use).`:"Add your own ESV or NLT key in Settings (tap your name).";
 }
 function notedKeys(){const set=new Set();S.notes.forEach(n=>(n.refs||[]).forEach(r=>refKeys(r).forEach(k=>set.add(k))));return set;}
 async function renderChapter(){
@@ -498,7 +507,9 @@ async function getRange(ver,r){if(LOCAL.includes(ver))return rangeText(await loa
 $("#chapter").addEventListener("keydown",e=>{if(e.key==="Enter"){const v=e.target.closest(".v");if(v)selectVerse(S.b,S.c,+v.dataset.v);}});
 $("#sel-book").addEventListener("change",e=>{S.picks.clear();S.b=+e.target.value;S.c=1;renderChapter();$("#main").scrollTop=0;});
 $("#sel-chap").addEventListener("change",e=>{S.picks.clear();S.c=+e.target.value;renderChapter();$("#main").scrollTop=0;});
-$("#sel-ver").addEventListener("change",e=>{S.ver=e.target.value;renderChapter();if(S.sel)renderStudy();});
+$("#sel-ver").addEventListener("change",e=>{
+  if(e.target.value.startsWith("+")){e.target.value=S.ver;if(!store.profile){showWho();return;}showWho("manage");setTimeout(()=>{$("#keys-box")?.scrollIntoView({block:"start"});$("#key-"+e.target.value.slice(1))?.focus();},60);return;}
+  S.ver=e.target.value;renderChapter();if(S.sel)renderStudy();});
 $("#sel-par").addEventListener("change",e=>{S.par=e.target.value;renderChapter();});
 async function step(d){const bible=await load("BSB");S.picks.clear();S.c+=d;if(S.c<1){if(S.b>0){S.b--;S.c=bible[S.b].length;}else S.c=1;}else if(S.c>bible[S.b].length){if(S.b<65){S.b++;S.c=1;}else S.c--;}renderChapter();$("#main").scrollTop=0;}
 $("#prev-ch").addEventListener("click",()=>step(-1));$("#next-ch").addEventListener("click",()=>step(1));
@@ -658,6 +669,13 @@ const ls={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set
 function profiles(){try{return JSON.parse(ls.get(PROFILES_KEY)||"[]");}catch(e){return [];}}
 function saveProfiles(list){ls.set(PROFILES_KEY,JSON.stringify(list));}
 const notesKey=id=>"scr-notes-"+id;
+const keysKey=id=>"scr-keys-"+id;
+async function loadMyKeys(pr,key){MYKEYS.ESV="";MYKEYS.NLT="";
+  try{const raw=ls.get(keysKey(pr.id));if(raw){const v=JSON.parse(raw);const k=v&&v.iv?await decJSON(key,v):v;MYKEYS.ESV=k.ESV||"";MYKEYS.NLT=k.NLT||"";}}catch(e){console.warn(e);}
+  refreshAvail();}
+async function saveMyKeys(){if(!store.profile)return;const data={ESV:MYKEYS.ESV,NLT:MYKEYS.NLT};
+  if(!data.ESV&&!data.NLT){ls.del(keysKey(store.profile.id));return;}
+  ls.set(keysKey(store.profile.id),JSON.stringify(store.key?await encJSON(store.key,data):data));}
 const store={
   mode:"local", profile:null, key:null, writing:Promise.resolve(),
   async init(){
@@ -675,14 +693,14 @@ const store={
   async open(pr,key){
     const raw=ls.get(notesKey(pr.id));let notes=[];
     if(raw){const v=JSON.parse(raw);notes=Array.isArray(v)?v:await decJSON(key,v);}
-    this.profile=pr;this.key=key;S.notes=notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));S.activeNote=null;
+    this.profile=pr;this.key=key;await loadMyKeys(pr,key);remoteCache.ESV.clear();remoteCache.NLT.clear();S.notes=notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));S.activeNote=null;
     try{sessionStorage.setItem("scr-who",pr.id);}catch(e){} ls.set("scr-who-last",pr.id);
-    paintWhoBtn();setStoreLabel();hideWho();onNotesChanged();if(S.view==="notes")renderNotes();if(S.view==="read")renderChapter();
+    paintWhoBtn();setStoreLabel();hideWho();if(typeof fillVersionMenus==="function"&&$("#sel-ver").options.length)fillVersionMenus();onNotesChanged();if(S.view==="notes")renderNotes();if(S.view==="read")renderChapter();
     sync.afterOpen();
     if(S.pendingShare&&S.shared){S.pendingShare=false;await importShared();}
     else if(!pr.tourDone&&$("#shared").hidden)setTimeout(()=>showTour(0),400);
   },
-  close(){sync.stopLive();this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
+  close(){sync.stopLive();MYKEYS.ESV="";MYKEYS.NLT="";refreshAvail();this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
   persist(){
     if(!this.profile){toast("Choose a profile first to save notes.");showWho();return;}
     const pr=this.profile,key=this.key,data=S.notes.slice();
@@ -769,8 +787,9 @@ function showWho(view,arg){
       <p class="fine">Once you sign in, your notes from your other devices appear here, in a profile with your username.</p>
       <div class="row"><button class="btn ghost" type="button" data-who="list">Back</button></div>`;setTimeout(()=>$("#sync-user")?.focus(),30);return;}
   if(view==="manage"&&cur){
-    el.innerHTML=`<div class="tag">Signed in as</div><h1>${esc(cur.name)}</h1>
+    el.innerHTML=`<div class="tag">Settings</div><h1>${esc(cur.name)}</h1>
     <div class="box sync-box" id="sync-box">${syncBoxHtml()}</div>
+    <div class="box" id="keys-box">${keysBoxHtml()}</div>
     <form id="who-rename"><label>Name<input type="text" id="who-name" maxlength="40" value="${esc(cur.name)}" required></label><div class="row"><button class="btn">Save name</button></div></form>
     <form id="who-setpw"><label>${cur.salt?"New password":"Add a password"}<input type="password" id="who-pw" autocomplete="new-password" placeholder="${cur.salt?"Leave empty to remove the password":""}"></label>
       <label>Type it again<input type="password" id="who-pw2" autocomplete="new-password"></label><div class="err" id="who-err" aria-live="polite"></div>
@@ -796,7 +815,7 @@ $("#who").addEventListener("click",async e=>{
   else if(w==="about"){showAbout();}
   else if(w==="guest"){const pr={id:newId(),name:"Guest",created:Date.now()};saveProfiles([...profiles(),pr]);await store.open(pr,null);}
   if(t.id==="who-del"){if(!t.dataset.confirm){t.dataset.confirm="1";t.textContent="Tap again to delete for good";return;}
-    const id=store.profile.id;ls.del(notesKey(id));saveProfiles(profiles().filter(x=>x.id!==id));store.close();showWho("list");toast("Profile deleted");}
+    const id=store.profile.id;ls.del(notesKey(id));ls.del(keysKey(id));saveProfiles(profiles().filter(x=>x.id!==id));store.close();showWho("list");toast("Profile deleted");}
 });
 $("#who").addEventListener("submit",async e=>{
   e.preventDefault();const f=e.target,err=$("#who-err");const setErr=m=>{if(err)err.textContent=m;};
@@ -818,7 +837,7 @@ $("#who").addEventListener("submit",async e=>{
     flushSave();await store.writing;let pr={...store.profile},key=null;
     if(pw){const salt=crypto.getRandomValues(new Uint8Array(16));key=await deriveKey(pw,salt);pr.salt=b64(salt);pr.check=await encJSON(key,"ok");}
     else{delete pr.salt;delete pr.check;}
-    saveProfiles(profiles().map(x=>x.id===pr.id?pr:x));store.profile=pr;store.key=key;await store.persist();
+    saveProfiles(profiles().map(x=>x.id===pr.id?pr:x));store.profile=pr;store.key=key;await store.persist();await saveMyKeys();
     toast(pw?"Password saved. Your notes are now locked on this device.":"Password removed");showWho("manage");}
 });
 // Unlock form: find the profile from the heading context
@@ -1267,6 +1286,7 @@ function aboutHtml(){
   </dl>
   <h2>Design and software</h2><dl>
   ${row("Fonts",`Literata and Hanken Grotesk, SIL Open Font License, via Google Fonts. ${L("https://fonts.google.com")}`)}
+  ${row("Your own keys","ESV and NLT keys you add in Settings stay on your device and are passed to Crossway or Tyndale only to fetch text you're reading. The app's server doesn't store them.")}
   ${row("Sync",`Supabase, for optional sync accounts (username and password, no email) that keep notes in step across devices. The Supabase JavaScript library is MIT licensed. ${L("https://supabase.com")}`)}
   ${row("Word and PDF export",`JSZip and jsPDF, both MIT licensed. ${L("https://stuk.github.io/jszip/","jszip")} · ${L("https://github.com/parallax/jsPDF","jsPDF")}`)}
   </dl>
@@ -1372,6 +1392,45 @@ function paintSync(){
   setStoreLabel();
   const box=$("#sync-box"); if(box)box.innerHTML=syncBoxHtml();
 }
+const KEYINFO={ESV:{name:"English Standard Version (ESV)",who:"Crossway",get:"https://api.esv.org/account/create-application/",site:"api.esv.org"},
+               NLT:{name:"New Living Translation (NLT)",who:"Tyndale",get:"https://api.nlt.to/",site:"api.nlt.to"}};
+function keysBoxHtml(){
+  const pr=store.profile;if(!pr)return "";
+  const rowFor=k=>{const mine=!!MYKEYS[k],info=KEYINFO[k];
+    const state=mine?`<span class="sync-dot"></span><span>Using your key <span class="fine">(…${esc(MYKEYS[k].slice(-4))})</span></span>`:
+      SITE[k]?`<span class="sync-dot"></span><span>Using this site's key. You can add your own.</span>`:`<span class="sync-dot off"></span><span>Not set up. Add your key to read ${k}.</span>`;
+    return `<div style="display:flex;flex-direction:column;gap:6px;padding-top:6px">
+      <b style="font-size:14px">${info.name}</b>
+      <div class="state" style="display:flex;align-items:center;gap:8px;font-size:13.5px">${state}</div>
+      <form class="row key-form" data-key="${k}" style="border:0;padding:0;background:none">
+        <input type="password" id="key-${k}" autocomplete="off" spellcheck="false" placeholder="Paste your ${k} key" style="flex:1;min-width:180px;font-size:16px;padding:9px 11px;border:1px solid var(--rule);border-radius:var(--r);background:var(--panel)">
+        <button class="btn sm primary">${mine?"Replace":"Save"}</button>${mine?`<button class="btn ghost sm" type="button" data-key-remove="${k}">Remove</button>`:""}
+      </form>
+      <span class="fine">Free key for personal, non-commercial use from ${info.who}: <a href="${info.get}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">${info.site}</a></span>
+      <span class="fine" id="key-msg-${k}" aria-live="polite"></span></div>`;};
+  return `<b>Bible versions with your own key</b>
+    <span class="fine">ESV and NLT text comes live from their publishers. Add your own free key to read them, without needing anyone else's.</span>
+    ${rowFor("ESV")}${rowFor("NLT")}
+    <span class="fine">Your keys are saved only on this device, in ${esc(pr.name)}'s profile${pr.salt?", encrypted with your profile password":""}. They're sent only when you load ESV or NLT text, passed straight to ${KEYINFO.ESV.who} or ${KEYINFO.NLT.who}, and never stored on the server. Add them on each device you use.</span>`;}
+function afterKeysChanged(k){remoteCache[k].clear();delete COPY[k];refreshAvail();fillVersionMenus();paintKeys();if(S.view==="read")renderChapter();if(S.sel)renderStudy();}
+function paintKeys(){const b=$("#keys-box");if(b)b.innerHTML=keysBoxHtml();}
+document.addEventListener("submit",async e=>{
+  const f=e.target.closest&&e.target.closest(".key-form");if(!f)return;e.preventDefault();
+  const k=f.dataset.key,inp=$("#key-"+k),msg=$("#key-msg-"+k),btn=f.querySelector("button.primary");
+  const val=inp.value.trim().replace(/^(Token|Bearer)\s+/i,"");
+  if(!/^[A-Za-z0-9._-]{8,128}$/.test(val)){msg.textContent="That doesn't look like an API key. Copy the key itself, with no spaces or extra words.";return;}
+  btn.disabled=true;msg.textContent="Checking your key with "+KEYINFO[k].who+"…";
+  try{const r=await api(`api/bible?v=${k}&b=42&c=3&v1=16`,{key:val});const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||("The check failed ("+r.status+")."));
+    MYKEYS[k]=val;await saveMyKeys();afterKeysChanged(k);toast(`${k} key saved. ${k} is now in the version menu.`);
+    const m2=$("#key-msg-"+k);if(m2)m2.textContent=`Works: “${(j.verses&&j.verses[16]||"").slice(0,70)}…”`;}
+  catch(x){msg.textContent=x.message||"Couldn't check the key.";btn.disabled=false;}
+});
+document.addEventListener("click",async e=>{
+  const rm=e.target.closest&&e.target.closest("[data-key-remove]");if(!rm)return;const k=rm.dataset.keyRemove;
+  if(!rm.dataset.confirm){rm.dataset.confirm="1";rm.textContent="Tap again to remove";return;}
+  MYKEYS[k]="";await saveMyKeys();if(S.ver===k)S.ver="BSB";if(S.par===k)S.par="";afterKeysChanged(k);toast(`${k} key removed from this device`);
+});
 function syncBoxHtml(){
   if(!sb)return `<b>Sync across your devices</b><span class="fine">Sync couldn't load. Check your connection and reload.</span>`;
   const pr=store.profile;
@@ -1449,7 +1508,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync.link
     if(pr&&!pr.salt&&(!store.profile||store.profile.id!==pr.id))await store.open(pr,null);
     await sync.onSignedIn(); toast("Signed in. Your notes will now sync across your devices.");}
   if(shareCode){hideWho();await openShared(shareCode);}
-  try{const r=await fetch("api/bible?status=1");if(r.ok)Object.assign(AVAIL,await r.json());}catch(e){}
+  try{const r=await fetch("api/bible?status=1");if(r.ok){const j=await r.json();Object.assign(AVAIL,j);SITE.ESV=!!j.ESV;SITE.NLT=!!j.NLT;}}catch(e){}
+  refreshAvail();
   setAiLabel(); fillVersionMenus(); if(S.view==="read")renderChapter();
   // Open with a verse selected so the study margin shows what it does
   if(!S.sel&&window.innerWidth>860){await load("BSB");selectVerse(S.b,S.c,S.b===42&&S.c===3?16:1);}
