@@ -9,6 +9,7 @@ A Bible study and sermon-notes app: read and compare translations, look up cross
 | App (one page) | `index.html` | Plain HTML/JS, no build step |
 | Built-in Bibles | `data/BSB.json`, `KJV.json`, `ASV.json`, `YLT.json`, `BBE.json`, `GNV.json` | Public domain, bundled |
 | Cross-references | `data/xref.json` | OpenBible.info, CC-BY |
+| Word-by-word tagging | `data/tags/<book>.json` | BSB with a Strong's number on each word (public domain, from BSB-publishing/bsb2usfm). Exact word study and Strong's searches. Loaded one book at a time |
 | Strong's lexicon | `data/lexicon.json` | Strong's dictionaries (public domain); digital edition © Open Scriptures, CC BY-SA, so this file is shared under CC BY-SA too |
 | ESV and NLT | `api/bible.js`, `lib/licensed.js` | Fetched live from Crossway and Tyndale. Each person can add their own free key in **Settings** (kept on their device, sent per request, never stored on the server); the site's own `ESV_API_KEY` / `NLT_API_KEY` in Vercel are an optional default for everyone. People using their own key don't need `APP_PASSCODE`. |
 | Discussion questions | `api/questions.js` | Calls Claude with your Anthropic key and streams questions back |

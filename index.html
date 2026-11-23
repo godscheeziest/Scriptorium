@@ -517,7 +517,7 @@ $("#goto").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const r=pars
 function openRef(r){S.b=r.b;S.c=r.c;show("read");renderChapter().then(()=>{if(r.v1){selectVerse(r.b,r.c,r.v1,r.v2);const el=document.querySelector(`.v[data-v="${r.v1}"]`);el&&el.scrollIntoView({block:"center"});}});}
 
 /* ---------- Study panel ---------- */
-function selectVerse(b,c,v,v2){S.sel={b,c,v,v2:v2||v};S.lexWord=null;
+function selectVerse(b,c,v,v2){S.sel={b,c,v,v2:v2||v};S.lexWord=null;S.lexNum=null;S.lexPhrase=null;
   document.querySelectorAll(".v.sel").forEach(x=>x.classList.remove("sel"));
   if(b===S.b&&c===S.c)document.querySelectorAll("#chapter .v").forEach(x=>{const n=+x.dataset.v;x.classList.toggle("sel",n>=v&&n<=(v2||v));});
   renderStudy();$("#study").classList.remove("closed");}
@@ -539,7 +539,9 @@ async function renderStudy(){
   const text=chap[v-1]||verseText(bible,b,c,v);
   const xrefs=(xr[b+"."+c+"."+v]||[]).map(parseXref);
   const keys=refKeys(ref); const related=S.notes.filter(n=>(n.refs||[]).some(r=>{const rk=refKeys(r);return rk.includes(b+"."+c+".*")||keys.some(k=>rk.includes(k));}));
-  const words=text.split(/(\s+)/).map(w=>/\w/.test(w)?`<button class="word${S.lexWord&&stem(w)===stem(S.lexWord)?" on":""}" data-w="${esc(w.replace(/[^\w'-]/g,""))}">${esc(w)}</button>`:esc(w)).join("");
+  const tagged=single?await loadTags(b).then(t=>(t[c-1]||[])[v-1]||null).catch(()=>null):null;
+  const tagWords=tagged&&tagged.length?tagged.map(t=>typeof t==="string"?esc(t):`<button class="word${S.lexNum===t[1]&&S.lexPhrase===t[0]?" on":""}" data-s="${t[1]}" data-p="${esc(t[0])}">${esc(t[0])}</button>`).join(""):null;
+  const words=tagWords||text.split(/(\s+)/).map(w=>/\w/.test(w)?`<button class="word${S.lexWord&&stem(w)===stem(S.lexWord)?" on":""}" data-w="${esc(w.replace(/[^\w'-]/g,""))}">${esc(w)}</button>`:esc(w)).join("");
   const ctxA=Math.max(1,v-3),ctxZ=Math.min(chapLen,v2+3);
   const passage=[];for(let i=v;i<=v2;i++)passage.push(`<sup>${i}</sup>${esc(chap[i-1]||verseText(bible,b,c,i))}`);
   sb.innerHTML=`
@@ -559,12 +561,12 @@ async function renderStudy(){
       ${(ctxA<v||ctxZ>v2)?`<button class="btn ghost sm" id="st-context" data-a="${ctxA}" data-z="${ctxZ}">Show more verses</button>`:""}
       ${(b!==S.b||c!==S.c)?`<button class="btn ghost sm" id="st-open">Open in reader</button>`:""}
     </div></div>
-  ${single?`<div class="sec"><div class="label">Word study · tap a word</div><div class="words">${words}</div><div id="lex-out"></div></div>`:""}
+  ${single?`<div class="sec"><div class="label">Word study · tap a word</div>${tagWords&&S.ver!=="BSB"?`<div class="sub">Shown in the BSB, where each word is linked to the exact Hebrew or Greek behind it.</div>`:""}<div class="words">${words}</div><div id="lex-out"></div></div>`:""}
   <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
   <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
     ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
   <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
-  if(S.lexWord&&single)showLex(S.lexWord);
+  if(S.lexNum&&single&&tagWords)showLexNum(S.lexNum,S.lexPhrase); else if(S.lexWord&&single)showLex(S.lexWord);
 }
 function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p>
   <form class="study-nav" id="st-form"><input type="text" id="st-ref" placeholder="Look up e.g. Rom 8:28-39" aria-label="Look up a verse"><button class="btn sm">Show</button></form></div>`;}
@@ -581,6 +583,7 @@ $("#study").addEventListener("click",async e=>{
   if(t.closest("#st-next")){studyStep(1);return;}
   const cx=t.closest("#st-context"); if(cx){const {b,c}=S.sel;selectVerse(b,c,+cx.dataset.a,+cx.dataset.z);return;}
   if(t.closest("#st-open")){const {b,c,v,v2}=S.sel;S.b=b;S.c=c;show("read");await renderChapter();selectVerse(b,c,v,v2);document.querySelector(`.v[data-v="${v}"]`)?.scrollIntoView({block:"center"});return;}
+  const ws=t.closest(".word[data-s]"); if(ws){S.lexNum=ws.dataset.s;S.lexPhrase=ws.dataset.p;document.querySelectorAll(".word[data-s]").forEach(x=>x.classList.toggle("on",x===ws));showLexNum(S.lexNum,S.lexPhrase);return;}
   const w=t.closest(".word"); if(w){S.lexWord=w.dataset.w;document.querySelectorAll(".word").forEach(x=>x.classList.toggle("on",stem(x.dataset.w)===stem(S.lexWord)));showLex(S.lexWord);return;}
   const x=t.closest(".xref"); if(x){openRef(JSON.parse(x.dataset.ref));return;}
   const nl=t.closest(".note-link"); if(nl){S.activeNote=nl.dataset.note;show("notes");return;}
@@ -588,6 +591,12 @@ $("#study").addEventListener("click",async e=>{
   if(t.closest("#copy-verse")){const {b,c,v,v2}=S.sel;const r={b,c,v1:v,v2:v2||v};copyText(`“${await getRange(S.ver,r)}” — ${refLabel(r)} (${S.ver})`);}
   const lx=t.closest("[data-search]"); if(lx){runSearch(lx.dataset.search);}
 });
+const loadTags=b=>load("tags/"+b);
+const normNum=n=>{const m=String(n).toUpperCase().match(/^([GH])0*(\d+)/);return m?m[1]+m[2]:"";};
+async function showLexNum(num,phrase){
+  const out=$("#lex-out"); if(!out)return; const lex=await load("lexicon"); const e=lex[num];
+  out.innerHTML=`<div class="sub">“${esc(phrase)}” here translates ${num[0]==="G"?"Greek":"Hebrew"} ${num}:</div>`+(e?lexCard([num,e]):`<p class="empty">Strong's has no entry for ${num}. It usually marks a small grammatical word or prefix.</p><div><button class="btn ghost sm" data-search="${num}">Find every use</button></div>`);
+}
 async function showLex(word){
   const out=$("#lex-out"); if(!out)return; const lex=await load("lexicon"); const hits=lexLookup(lex,word,6);
   out.innerHTML=hits.length?`<div class="sub">Hebrew and Greek words the KJV translates as “${esc(word)}”</div>`+hits.map(lexCard).join(""):`<p class="empty">No Strong's entry is translated “${esc(word)}”. Common words like “the” or “and” aren't indexed.</p>`;
@@ -607,7 +616,7 @@ function lexLookup(lex,word,max){
   return res.slice(0,max);
 }
 let _rc=null;function rootCount(lex){if(_rc)return _rc;_rc={};for(const k in lex){const m=(lex[k][4]||"").match(/[GH]\d+/g);if(m)m.forEach(x=>{_rc[x]=(_rc[x]||0)+1;});}return _rc;}
-function lexCard([k,e]){return `<div class="lex"><div class="top"><span class="num">${k}</span><span class="lemma" lang="${k[0]==="G"?"grc":"he"}">${esc(e[0])}</span><span class="tr">${esc(e[1])}</span></div><div class="def">${esc(e[2]||"")}</div><div class="kjv">KJV renders: ${esc(e[3])}</div>${e[4]?`<div class="kjv">${esc(e[4])}</div>`:""}<div><button class="btn ghost sm" data-search="${k}">Find in the Bible</button></div></div>`;}
+function lexCard([k,e]){return `<div class="lex"><div class="top"><span class="num">${k}</span><span class="lemma" lang="${k[0]==="G"?"grc":"he"}">${esc(e[0])}</span><span class="tr">${esc(e[1])}</span></div><div class="def">${esc(e[2]||"")}</div><div class="kjv">KJV renders: ${esc(e[3])}</div>${e[4]?`<div class="kjv">${esc(e[4])}</div>`:""}<div><button class="btn ghost sm" data-search="${k}">Find every use of ${k}</button></div></div>`;}
 
 /* ---------- Concordance ---------- */
 $("#search-form").addEventListener("submit",e=>{e.preventDefault();runSearch($("#q").value);});
@@ -616,6 +625,7 @@ $("#view-search").addEventListener("click",e=>{const t=e.target.closest("[data-t
 let SR=null;
 async function runSearch(q){
   q=(q||"").trim(); if(!q)return; show("search"); $("#q").value=q; const out=$("#search-out"); out.innerHTML=`<p class="sub"><span class="spinner"></span> Searching…</p>`;
+  if(/^[GH]0*\d+[a-z]?$/i.test(q))return strongsSearch(normNum(q));
   const ver=$("#q-ver").value||"BSB"; if(ver==="ESV")return esvSearchRun(q,1);
   const [bible,lex]=await Promise.all([load(ver),load("lexicon")]);
   const scope=$("#q-scope").value; S.searchBook=null;
@@ -630,6 +640,19 @@ async function runSearch(q){
   for(let b=lo;b<hi;b++)bible[b].forEach((ch,ci)=>ch.forEach((t,vi)=>{re.lastIndex=0;if(re.test(t))hits.push({b,c:ci+1,v:vi+1,t});}));
   SR={q,ver,hits,lexHits,re,terms};drawHits();
 }
+async function strongsSearch(num){
+  const out=$("#search-out"); out.innerHTML=`<p class="sub"><span class="spinner"></span> Looking through every word of the Bible for ${num}…</p>`;
+  const scope=$("#q-scope").value; S.searchBook=null; const lo=scope==="nt"?39:0,hi=scope==="ot"?39:66;
+  const books=await Promise.all(Array.from({length:hi-lo},(_,i)=>loadTags(lo+i).catch(()=>[])));
+  const lex=await load("lexicon"); const hits=[]; const renders={}; let words=0;
+  books.forEach((chs,i)=>{const b=lo+i;chs.forEach((vs,ci)=>vs.forEach((toks,vi)=>{
+    if(!toks||!toks.some(t=>typeof t!=="string"&&t[1]===num))return;
+    const hl=[];let txt="";toks.forEach(t=>{if(typeof t==="string")txt+=t;else{if(t[1]===num){hl.push([txt.length,t[0].length]);words++;const r=t[0].toLowerCase().replace(/[^a-z' -]/g,"").trim();if(r)renders[r]=(renders[r]||0)+1;}txt+=t[0];}});
+    hits.push({b,c:ci+1,v:vi+1,t:txt,hl});}));});
+  const lexHits=lex[num]?[[num,lex[num]]]:[];
+  SR={q:num,ver:"BSB",hits,lexHits,re:null,terms:[num],strongs:{num,words,renders:Object.entries(renders).sort((a,b)=>b[1]-a[1])}};drawHits();
+}
+function markRanges(t,hl){let o="",p=0;hl.forEach(([s,l])=>{o+=esc(t.slice(p,s))+"<mark>"+esc(t.slice(s,s+l))+"</mark>";p=s+l;});return o+esc(t.slice(p));}
 async function esvSearchRun(q,page){
   const out=$("#search-out"); let j;
   try{const r=await api(`api/bible?v=ESV&search=${encodeURIComponent(q)}&page=${page}`);j=await r.json();if(!r.ok)throw new Error(j.error||"ESV search failed.");}
@@ -645,14 +668,15 @@ async function esvSearchRun(q,page){
   if(!j.total)$("#esv-hits").innerHTML='<p class="empty">No ESV passages use that wording.</p>';
 }
 function drawHits(){
-  const {q,ver,hits,lexHits,re,terms}=SR; const counts={};hits.forEach(h=>counts[h.b]=(counts[h.b]||0)+1);const max=Math.max(1,...Object.values(counts));
+  const {q,ver,hits,lexHits,re,terms,strongs}=SR; const counts={};hits.forEach(h=>counts[h.b]=(counts[h.b]||0)+1);const max=Math.max(1,...Object.values(counts));
   const shown=(S.searchBook==null?hits:hits.filter(h=>h.b===S.searchBook)); const lim=shown.slice(0,300);
   $("#search-out").innerHTML=`
-    <div class="label">Concordance · ${ver}</div><h1 class="ref">“${esc(q)}”</h1>
-    <p class="sub">${hits.length.toLocaleString()} verse${hits.length===1?"":"s"} in ${Object.keys(counts).length} book${Object.keys(counts).length===1?"":"s"}${terms.length>1||terms[0]!==q?" · searched for: "+esc(terms.join(", ")):""}</p>
+    <div class="label">Concordance · ${strongs?"exact Hebrew/Greek word, in the BSB":ver}</div><h1 class="ref">${strongs?`${esc(q)}${lexHits[0]?` <span lang="${q[0]==="G"?"grc":"he"}" style="font-weight:400">${esc(lexHits[0][1][0])}</span>`:""}`:`“${esc(q)}”`}</h1>
+    <p class="sub">${hits.length.toLocaleString()} verse${hits.length===1?"":"s"} in ${Object.keys(counts).length} book${Object.keys(counts).length===1?"":"s"}${strongs?` · ${strongs.words.toLocaleString()} time${strongs.words===1?"":"s"}`:(terms.length>1||terms[0]!==q?" · searched for: "+esc(terms.join(", ")):"")}</p>
+    ${strongs&&strongs.renders.length?`<div class="label" style="margin-top:14px">How the BSB translates it</div><p class="sub" style="margin-top:4px">${strongs.renders.slice(0,14).map(([r,n])=>`${esc(r)} <b>${n}</b>`).join(" · ")}${strongs.renders.length>14?" · …":""}</p>`:""}
     ${lexHits.length?`<div class="label" style="margin-top:18px">Original-language words · Strong's</div><div class="lexgrid">${lexHits.map(lexCard).join("")}</div>`:""}
     ${hits.length?`<div class="label">Where it appears · tap a book to filter</div><div class="dist">${Object.entries(counts).map(([b,n])=>`<button data-book="${b}" class="${S.searchBook===+b?"on":""}"><span>${BOOKS[b]}</span><span class="n">${n}</span><span class="bar-fill" style="width:${Math.round(n/max*100)}%"></span></button>`).join("")}</div>`:""}
-    <div class="hits">${lim.map(h=>`<button class="hit" data-ref='{"b":${h.b},"c":${h.c},"v1":${h.v},"v2":${h.v}}'><span class="r">${shortBook(h.b)} ${h.c}:${h.v}</span><span class="t">${esc(h.t).replace(new RegExp(re.source,"gi"),m=>"<mark>"+m+"</mark>")}</span></button>`).join("")}</div>
+    <div class="hits">${lim.map(h=>`<button class="hit" data-ref='{"b":${h.b},"c":${h.c},"v1":${h.v},"v2":${h.v}}'><span class="r">${shortBook(h.b)} ${h.c}:${h.v}</span><span class="t">${h.hl?markRanges(h.t,h.hl):esc(h.t).replace(new RegExp(re.source,"gi"),m=>"<mark>"+m+"</mark>")}</span></button>`).join("")}</div>
     ${shown.length>300?`<p class="sub">Showing the first 300 of ${shown.length}. Tap a book above to narrow the list.</p>`:""}
     ${!hits.length?`<p class="empty">No verses in ${ver} use that wording. Try another version, or turn off “Whole words”.</p>`:""}`;
 }
@@ -1281,7 +1305,7 @@ function aboutHtml(){
   <h2>Study tools</h2><dl>
   ${row("Cross-references",`OpenBible.info Cross References, licensed under Creative Commons Attribution (CC BY). ${L("https://www.openbible.info/labs/cross-references/")}<small>This app shows up to 14 of the highest-voted references for each verse.</small>`)}
   ${row("Strong's lexicon",`James Strong, <i>Dictionary of Greek Words</i> (1890) and <i>A Concise Dictionary of the Words in the Hebrew Bible</i> (1894), public domain. Digital edition © Open Scriptures, licensed CC BY-SA. ${L("https://github.com/openscriptures/strongs")}<small>Greek XML prepared by Ulrik Petersen; Hebrew from data by David Instone-Brewer, edited by David Troidl. The lexicon file in this app is a reformatted extract and is shared under the same CC BY-SA license.</small>`)}
-  ${row("Word study matching","Words are matched to Strong's entries by their KJV renderings, so results are a guide, not an exact tag of the word in each verse.")}
+  ${row("Word-by-word tagging",`The Berean Standard Bible with Strong's numbers on every word, public domain, from the BSB publishing project. This powers exact word study and Strong's-number searches. ${L("https://github.com/BSB-publishing/bsb2usfm")}<small>For other versions, the word study shows the BSB wording of the same verse.</small>`)}
   ${row("Discussion questions",`Written by Claude, an AI model from Anthropic, from your notes and the verses you cite. ${L("https://www.anthropic.com")}<small>AI can make mistakes. Check questions against Scripture before using them with a group. When Claude isn't available, the app uses its own built-in questions.</small>`)}
   </dl>
   <h2>Design and software</h2><dl>
