@@ -277,6 +277,16 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .comm-body .clip{max-height:340px;overflow:hidden;position:relative}
 .comm-body .clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:60px;background:linear-gradient(transparent,var(--panel))}
 .cref{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 40%,transparent);cursor:pointer}
+.dict-list{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 16px}
+.dict-list button{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:600}
+.dict-list button small{font-weight:500;color:var(--muted);margin-left:4px}
+.dict-entry{font-family:var(--scripture);font-size:17px;line-height:1.7;max-width:66ch;display:flex;flex-direction:column;gap:10px}
+.dict-entry p{margin:0}
+.topic-group{border-top:1px solid var(--rule);padding:10px 0;display:flex;flex-direction:column;gap:6px}
+.topic-group .gl{font-weight:700;font-size:14px}
+.topic-group .chips .chip{font-size:12.5px}
+.topic-verses{display:flex;flex-direction:column;gap:6px;font-family:var(--scripture);font-size:15px;line-height:1.55}
+.topic-verses b{font-family:var(--ui);font-size:12px;color:var(--rubric);margin-right:6px}
 </style>
 </head>
 <body>
@@ -287,6 +297,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
     <div class="tabs" role="tablist">
       <button class="tab" data-view="read" id="tab-read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/></svg><span>Read</span></button>
       <button class="tab" data-view="search" id="tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Concordance</span></button>
+      <button class="tab" data-view="dict" id="tab-dict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg><span>Dictionary</span></button>
       <button class="tab" data-view="notes" id="tab-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Sermon notes</span></button>
     </div>
     <button class="btn ghost sm fs-btn" id="fs-btn" type="button" hidden title="Hide the browser's toolbars (Esc to exit)">⛶ Full screen</button>
@@ -333,6 +344,21 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
         <h1 class="ref">Every occurrence, by book</h1>
         <p class="sub">Search a word to see every verse that uses it, how it spreads across the books, and the Hebrew and Greek words behind it in Strong's lexicon.</p>
         <p class="examples">Try: <button class="btn ghost sm" data-try="steadfast love">steadfast love</button> <button class="btn ghost sm" data-try="grace">grace</button> <button class="btn ghost sm" data-try="G26">G26</button> <button class="btn ghost sm" data-try="abide">abide</button></p>
+      </div>
+    </section>
+
+    <!-- DICTIONARY -->
+    <section class="view" id="view-dict" hidden>
+      <form class="bar" id="dict-form" autocomplete="off">
+        <input type="search" id="dict-q" placeholder="Look up a name, place, word or topic: Nicodemus, tabernacle, faith…" style="flex:1;min-width:220px" aria-label="Look up in the dictionary">
+        <button class="btn primary" type="submit">Look up</button>
+      </form>
+      <div id="dict-list"></div>
+      <div id="dict-out">
+        <div class="label">Dictionary &amp; topics</div>
+        <h1 class="ref">Easton's Bible Dictionary and Nave's Topical Bible</h1>
+        <p class="sub" style="max-width:62ch">Look up people, places and Bible words in Easton's dictionary (1897), and find every passage on a subject in Nave's Topical Bible. References open in the reader.</p>
+        <p class="examples">Try: <button class="btn ghost sm" data-dict="Faith">Faith</button> <button class="btn ghost sm" data-dict="Grace">Grace</button> <button class="btn ghost sm" data-dict="Tabernacle">Tabernacle</button> <button class="btn ghost sm" data-dict="Nicodemus">Nicodemus</button> <button class="btn ghost sm" data-dict="Prayer">Prayer</button> <button class="btn ghost sm" data-dict="Covenant">Covenant</button></p>
       </div>
     </section>
 
@@ -457,12 +483,12 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200);}
 
 /* ---------- Views / routing ---------- */
-function show(view){S.view=view;if(view!=="read"&&S.multi)setMulti(false);["read","search","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
+function show(view){S.view=view;if(view!=="read"&&S.multi)setMulti(false);["read","search","dict","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
   if(location.hash!=="#"+view)history.replaceState(null,"","#"+view);
   if(view!=="read"&&window.innerWidth<=860)$("#study").classList.add("closed");
   if(view==="notes")renderNotes(); if(view==="read")renderChapter();}
 document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>show(t.dataset.view)));
-window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["read","search","notes"].includes(h))show(h);});
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["read","search","dict","notes"].includes(h))show(h);});
 
 /* ---------- Reader ---------- */
 function fillSelectors(bible){
@@ -571,11 +597,12 @@ async function renderStudy(){
     </div></div>
   ${single?`<div class="sec"><div class="label">Word study · tap a word</div>${tagWords&&S.ver!=="BSB"?`<div class="sub">Shown in the BSB, where each word is linked to the exact Hebrew or Greek behind it.</div>`:""}<div class="words">${words}</div><div id="lex-out"></div></div>`:""}
   <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
+  <div class="sec" id="topics-sec" hidden></div>
   <div class="sec" id="comm-sec"></div>
   <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
     ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
   <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
-  renderComm();
+  renderComm(); renderVerseTopics();
   if(S.lexNum&&single&&tagWords)showLexNum(S.lexNum,S.lexPhrase); else if(S.lexWord&&single)showLex(S.lexWord);
 }
 function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p>
@@ -650,7 +677,7 @@ async function showCommChapter(){const {b,c}=S.sel;const meta=COMMS.find(x=>x.id
 document.addEventListener("change",e=>{if(e.target.id==="comm-pick"){try{localStorage.setItem("scr-comm",e.target.value);}catch(x){}renderComm();}});
 document.addEventListener("click",async e=>{
   const t=e.target;
-  const cr=t.closest&&t.closest(".cref");if(cr){$("#about").hidden=true;openRef(JSON.parse(cr.dataset.ref));return;}
+  const cr=t.closest&&t.closest(".cref[data-ref]");if(cr){$("#about").hidden=true;openRef(JSON.parse(cr.dataset.ref));return;}
   if(t.id==="comm-more"){$("#comm-text").classList.remove("clip");t.remove();return;}
   if(t.id==="comm-chapter"){showCommChapter();return;}
   if(t.id==="comm-quote"){const meta=COMMS.find(x=>x.id===commChoice())||COMMS[0];const txt=(S.commText||"").trim();if(!txt)return;
@@ -1376,6 +1403,8 @@ function aboutHtml(){
   ${row("Cross-references",`OpenBible.info Cross References, licensed under Creative Commons Attribution (CC BY). ${L("https://www.openbible.info/labs/cross-references/")}<small>This app shows up to 14 of the highest-voted references for each verse.</small>`)}
   ${row("Strong's lexicon",`James Strong, <i>Dictionary of Greek Words</i> (1890) and <i>A Concise Dictionary of the Words in the Hebrew Bible</i> (1894), public domain. Digital edition © Open Scriptures, licensed CC BY-SA. ${L("https://github.com/openscriptures/strongs")}<small>Greek XML prepared by Ulrik Petersen; Hebrew from data by David Instone-Brewer, edited by David Troidl. The lexicon file in this app is a reformatted extract and is shared under the same CC BY-SA license.</small>`)}
   ${row("Word-by-word tagging",`The Berean Standard Bible with Strong's numbers on every word, public domain, from the BSB publishing project. This powers exact word study and Strong's-number searches. ${L("https://github.com/BSB-publishing/bsb2usfm")}<small>For other versions, the word study shows the BSB wording of the same verse.</small>`)}
+  ${row("Dictionary",`Easton's Bible Dictionary (1897), public domain, from the CCEL edition prepared by the neuu-org Bible dictionary dataset. ${L("https://github.com/neuu-org/bible-dictionary-dataset")}`)}
+  ${row("Topics",`Nave's Topical Bible, public domain; structured data from BibleData by Brady Stephenson, CC BY 4.0. ${L("https://github.com/BradyStephenson/bible-data")}`)}
   ${row("Commentaries",`Matthew Henry, Jamieson-Fausset-Brown, John Gill, Adam Clarke, John Calvin, Keil &amp; Delitzsch and Albert Barnes (all public domain), and the Tyndale Open Study Notes (© Tyndale House Publishers, CC BY-SA 4.0). Loaded a chapter at a time from AO Lab's Free Use Bible API. ${L("https://bible.helloao.org")}`)}
   ${row("Discussion questions",`Written by Claude, an AI model from Anthropic, from your notes and the verses you cite. ${L("https://www.anthropic.com")}<small>AI can make mistakes. Check questions against Scripture before using them with a group. When Claude isn't available, the app uses its own built-in questions.</small>`)}
   </dl>
@@ -1582,6 +1611,74 @@ document.addEventListener("submit",async e=>{
 });
 window.addEventListener("online",()=>{sync.flush();sync.full(false);});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync.linked())sync.full(false);});
+/* ---------- Dictionary (Easton) and topics (Nave's) ---------- */
+let DIDX=null;
+async function dictIndex(){if(DIDX)return DIDX;const [e,n]=await Promise.all([load("dict/easton-index"),load("dict/naves-index")]);
+  const m=new Map();e.forEach(([t,L])=>{const k=t.toLowerCase();m.set(k,{...(m.get(k)||{}),term:t,e:L});});
+  n.forEach(([t,L])=>{const k=t.toLowerCase();const cur=m.get(k)||{};m.set(k,{...cur,term:cur.term||titleCase(t),n:L,nTerm:t});});
+  DIDX={map:m,keys:[...m.keys()].sort()};return DIDX;}
+function titleCase(t){return t.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase());}
+function easText(para){ // Easton paragraphs carry ⟦b.c.v1.v2|shown⟧ reference markers
+  return para.split(/(⟦[^⟧]+⟧)/).map(part=>{const m=part.match(/^⟦(\d+)\.(\d+)\.(\d+)\.(\d+)\|(.*)⟧$/);
+    if(!m)return esc(part);const r={b:+m[1],c:+m[2],v1:+m[3],v2:+m[4]};return `<button class="cref" data-ref='${JSON.stringify(r)}'>${esc(m[5])}</button>`;}).join("");}
+function refShort(r){return `${BOOKS[r[0]]} ${r[1]}${r[2]?":"+r[2]+(r[3]&&r[3]!==r[2]?"–"+r[3]:""):""}`;}
+function resolveSee(raw,I,hit){ // "FAITH, TRIAL OF, below" -> topic FAITH, heading "TRIAL OF"; "MIRACLES OF MOSES" -> longest existing topic
+  let t=raw.replace(/,?\s*below\.?$/i,"").trim(); const below=/below\.?$/i.test(raw.trim());
+  const parts=t.split(/,\s*/); let topic=parts[0], sub=parts.slice(1).join(", ");
+  if(below&&!I.map.has(topic.toLowerCase())){sub=t;topic=hit.nTerm||hit.term;}
+  let words=topic.split(/\s+/);while(words.length&&!(I.map.get(words.join(" ").toLowerCase())||{}).n){sub=sub||topic;words.pop();}
+  if(!words.length)return null; const found=I.map.get(words.join(" ").toLowerCase());
+  return {topic:found.term,sub:sub&&sub.toLowerCase()!==found.term.toLowerCase()?sub:""};}
+async function lookup(q,opts={}){
+  q=(q||"").trim(); if(!q)return; show("dict"); $("#dict-q").value=q; const out=$("#dict-out"),list=$("#dict-list");
+  out.innerHTML=`<p class="sub"><span class="spinner"></span> Looking up “${esc(q)}”…</p>`; list.innerHTML="";
+  const I=await dictIndex(); const k=q.toLowerCase();
+  let hit=I.map.get(k)||I.map.get(k.replace(/s$/,""))||I.map.get(k+"s");
+  const near=I.keys.filter(x=>x.startsWith(k)&&x!==(hit&&hit.term.toLowerCase())).slice(0,24);
+  const also=near.length?near:I.keys.filter(x=>x.includes(k)).slice(0,24);
+  list.innerHTML=also.length?`<div class="dict-list">${also.map(x=>{const h=I.map.get(x);return `<button data-dict="${esc(h.term)}">${esc(h.term)}<small>${[h.e?"dictionary":"",h.n?"topic":""].filter(Boolean).join(" · ")}</small></button>`;}).join("")}</div>`:"";
+  if(!hit){out.innerHTML=also.length?`<p class="sub">No exact entry for “${esc(q)}”. Did you mean one of these?</p>`:`<p class="empty">Nothing found for “${esc(q)}” in Easton's or Nave's. Try a shorter word, or a name like “Abraham”.</p>`;return;}
+  const parts=[`<div class="label">${[hit.e?"Easton's Bible Dictionary":"",hit.n?"Nave's Topical Bible":""].filter(Boolean).join(" · ")}</div><h1 class="ref">${esc(hit.term)}</h1>`];
+  if(hit.e){const d=await load("dict/easton-"+hit.e);const paras=d[hit.term]||d[Object.keys(d).find(x=>x.toLowerCase()===hit.term.toLowerCase())]||[];
+    parts.push(`<div class="dict-entry">${paras.map(p=>`<p>${easText(p)}</p>`).join("")}</div><p class="fine" style="font-size:12px;color:var(--muted)">Easton's Bible Dictionary (1897), public domain.</p>`);}
+  if(hit.n){const d=await load("dict/naves-"+hit.n);const groups=d[hit.nTerm]||[];
+    parts.push(`<div class="label" style="margin-top:18px">Nave's Topical Bible · ${groups.length} heading${groups.length===1?"":"s"}</div>`+groups.map((g,gi)=>{
+      const see=g[0].match(/^See\s+(.+)$/i);
+      if(see&&!g[1].length)return `<div class="topic-group"><span class="sub">See also: ${see[1].split(/;\s*/).map(raw=>{const r=resolveSee(raw,I,hit);
+        return r?`<button class="cref" data-dict="${esc(r.topic)}"${r.sub?` data-sub="${esc(r.sub)}"`:""}>${esc(titleCase(raw.replace(/,?\s*below$/i,"").trim()))}</button>`:esc(titleCase(raw.trim()));}).join("; ")}</span></div>`;
+      return `<div class="topic-group"><div class="gl">${esc(g[0]||hit.term)}</div>${g[1].length?`<div class="chips">${g[1].slice(0,40).map(r=>`<button class="chip" data-ref='${JSON.stringify({b:r[0],c:r[1],v1:r[2]||null,v2:r[3]||null})}'>${esc(refShort(r))}</button>`).join("")}${g[1].length>40?`<span class="sub">+${g[1].length-40} more</span>`:""}</div>
+        <div><button class="btn ghost sm" data-topic-verses="${gi}">Show the verses</button><button class="btn ghost sm" data-topic-note="${gi}">Add to note</button></div><div class="topic-verses" id="tv-${gi}"></div>`:""}</div>`;}).join("")+`<p class="fine" style="font-size:12px;color:var(--muted)">Nave's Topical Bible, public domain; data © Brady Stephenson, BibleData, CC BY 4.0.</p>`);
+    S.topic={term:hit.term,groups};}
+  else S.topic=null;
+  out.innerHTML=parts.join("");
+  if(!opts.keepScroll)$("#main").scrollTop=0;
+  if(opts.sub){const want=opts.sub.toLowerCase().replace(/[^a-z ]/g,"").trim();const gl=[...document.querySelectorAll("#dict-out .topic-group .gl")].find(x=>{const t=x.textContent.toLowerCase().replace(/[^a-z ]/g,"").trim();return t===want||t.startsWith(want)||want.startsWith(t)&&t.length>3;});
+    if(gl){gl.scrollIntoView({block:"start"});gl.parentElement.style.background="var(--soft)";}}
+}
+async function topicVerses(gi){const g=S.topic&&S.topic.groups[gi];if(!g)return [];const bible=await load(LOCAL.includes(S.ver)?S.ver:"BSB");
+  return g[1].slice(0,40).map(r=>{const ref={b:r[0],c:r[1],v1:r[2]||1,v2:r[3]||(r[2]?r[2]:Math.min(3,(bible[r[0]]?.[r[1]-1]||[]).length))};return [refShort(r),rangeText(bible,ref),ref];});}
+$("#dict-form").addEventListener("submit",e=>{e.preventDefault();lookup($("#dict-q").value);});
+document.addEventListener("click",async e=>{
+  const t=e.target;const d=t.closest&&t.closest("[data-dict]");if(d){e.preventDefault();lookup(d.dataset.dict,{sub:d.dataset.sub||""});return;}
+  const tv=t.closest&&t.closest("[data-topic-verses]");if(tv){const gi=tv.dataset.topicVerses,box=$("#tv-"+gi);if(box.innerHTML){box.innerHTML="";tv.textContent="Show the verses";return;}
+    const rows=await topicVerses(gi);box.innerHTML=rows.map(([l,txt])=>`<div><b>${esc(l)}</b>${esc(txt)}</div>`).join("");tv.textContent="Hide the verses";return;}
+  const tn=t.closest&&t.closest("[data-topic-note]");if(tn){const gi=tn.dataset.topicNote,g=S.topic.groups[gi];const rows=await topicVerses(gi);
+    await appendToNote(`<h4>${esc(S.topic.term)}${g[0]?": "+esc(g[0]):""}</h4><ul>${rows.slice(0,15).map(([l,txt])=>`<li><b>${esc(l)}</b> — ${esc(txt)}</li>`).join("")}</ul><p><br></p>`,`“${S.topic.term}”`);return;}
+  const chip=t.closest&&t.closest("#dict-out .chip[data-ref]");if(chip){openRef(JSON.parse(chip.dataset.ref));return;}
+});
+// verse panel: topics that cite this verse, and dictionary entries for names in it
+async function renderVerseTopics(){
+  const el=$("#topics-sec");if(!el||!S.sel)return;const {b,c,v}=S.sel;
+  const [vt,I,bsb]=await Promise.all([load("dict/naves-verses/"+b).catch(()=>({})),dictIndex(),load("BSB")]);
+  if(!S.sel||S.sel.b!==b||S.sel.c!==c||S.sel.v!==v)return;
+  const topics=vt[c+"."+v]||[];
+  const words=[...new Set((verseText(bsb,b,c,v).match(/\b[A-Z][a-z]{2,}(?:\s[A-Z][a-z]+)?\b/g)||[]))].filter(w=>!/^(The|And|But|For|Then|When|Now|This|That|There|These|Those|What|Who|His|Him|Her|She|They|Them|You|Your|Our|We|Let|Yet|So|If|In|On|At|As|Of|To|Do|Is|Be|All|No|Not|Lord|God)$/.test(w)&&I.map.get(w.toLowerCase())&&I.map.get(w.toLowerCase()).e).slice(0,8);
+  if(!topics.length&&!words.length){el.innerHTML="";el.hidden=true;return;}
+  el.hidden=false;
+  el.innerHTML=`<div class="sec-head"><div class="label">Topics &amp; names</div></div>
+    ${topics.length?`<div class="chips">${topics.slice(0,14).map(t=>`<button class="chip" data-dict="${esc(t)}" style="color:var(--accent)">${esc(titleCase(t))}</button>`).join("")}</div>`:""}
+    ${words.length?`<div class="sub">In the dictionary: ${words.map(w=>`<button class="cref" data-dict="${esc(w)}">${esc(w)}</button>`).join(", ")}</div>`:""}`;
+}
 /* ---------- Full screen (the page's own, so the browser toolbar can't cover the app) ---------- */
 (function(){const b=$("#fs-btn");if(!document.fullscreenEnabled)return;b.hidden=false;
   const paint=()=>{b.textContent=document.fullscreenElement?"Exit full screen":"⛶ Full screen";};
@@ -1594,7 +1691,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&sync.link
     if(err)setTimeout(()=>toast(/expired|invalid/i.test(err)?"That sign-in link has expired or was already used. Send a new one.":"Sign-in didn't finish: "+err),600);}
   else await sync.init();
   const shareCode=location.hash.startsWith("#share=")?location.hash.slice(7):null; if(shareCode)history.replaceState(null,"","#notes");
-  const h=location.hash.slice(1); show(["read","search","notes"].includes(h)?h:"read");
+  const h=location.hash.slice(1); show(["read","search","dict","notes"].includes(h)?h:"read");
   $("#study-body").innerHTML=studyIntro(); if(window.innerWidth>860)$("#study").classList.remove("closed");
   await store.init();
   if(authReturn&&sync.user){ // just came back from the email link
