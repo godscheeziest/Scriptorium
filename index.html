@@ -313,6 +313,18 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .fulllex hr{border:0;border-top:1px solid var(--rule);margin:8px 0}
 .fulllex .clip{max-height:260px;overflow:hidden;position:relative}
 .fulllex .clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(transparent,var(--panel))}
+.orig{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:flex-start}
+.orig.rtl{direction:rtl}
+.ow{border:0;background:none;padding:3px 4px;border-radius:6px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;direction:ltr}
+.ow:hover,.ow.on{background:var(--soft)}
+.ow.on{outline:1px solid var(--accent)}
+.ow .o{font-size:21px;line-height:1.3;font-family:"SBL Hebrew","SBL BibLit","Ezra SIL","Times New Roman",var(--scripture)}
+.orig.grc .ow .o{font-size:18px}
+.ow .g{font-family:var(--ui);font-size:11px;color:var(--muted);max-width:110px;text-align:center;line-height:1.2}
+.parse{font-size:13.5px;line-height:1.5}
+.parse b[lang]{font-size:20px;font-family:"SBL Hebrew","SBL BibLit","Times New Roman",var(--scripture)}
+.chapter .pv.orig-he{direction:rtl;text-align:right;font-family:"SBL Hebrew","Ezra SIL","Times New Roman",var(--scripture);font-size:22px;line-height:1.9}
+.chapter .pv.orig-gr{font-family:"SBL BibLit","Times New Roman",var(--scripture);font-size:19px}
 </style>
 </head>
 <body>
@@ -480,6 +492,7 @@ function remember(ver,key,arr){const m=remoteCache[ver];m.delete(key);m.set(key,
   while(total>500&&m.size>1){const k=m.keys().next().value;total-=m.get(k).filter(Boolean).length;m.delete(k);}}
 function toArray(obj){const n=Math.max(0,...Object.keys(obj).map(Number));const a=[];for(let i=1;i<=n;i++)a.push(obj[i]||"");return a;}
 async function getChapter(ver,b,c){
+  if(ver==="ORIG"){const d=await loadOrig(b);return (d[c-1]||[]).map(ws=>(ws||[]).map(w=>w[0]).join(" "));}
   if(LOCAL.includes(ver)){const d=await load(ver);return d[b]?.[c-1]||[];}
   const key=b+"."+c; if(remoteCache[ver].has(key))return remoteCache[ver].get(key);
   const r=await api(`api/bible?v=${ver}&b=${b}&c=${c}`); const j=await r.json().catch(()=>({}));
@@ -525,9 +538,9 @@ function fillSelectors(bible){
   fillVersionMenus();
 }
 function fillVersionMenus(){
-  const keys=usable(); if(!keys.includes(S.ver))S.ver="BSB"; if(S.par&&!keys.includes(S.par))S.par="";
+  const keys=usable(); if(!keys.includes(S.ver))S.ver="BSB"; if(S.par&&S.par!=="ORIG"&&!keys.includes(S.par))S.par="";
   const vo=keys.map(k=>`<option value="${k}">${k} · ${VERSIONS[k]}</option>`).join("")+REMOTE.filter(k=>!AVAIL[k]).map(k=>`<option value="+${k}">${k} · add your key in Settings…</option>`).join("");
-  $("#sel-ver").innerHTML=vo; $("#sel-par").innerHTML='<option value="">Compare: off</option>'+keys.map(k=>`<option value="${k}">Compare: ${k}</option>`).join("");
+  $("#sel-ver").innerHTML=vo; $("#sel-par").innerHTML='<option value="">Compare: off</option><option value="ORIG">Compare: Greek / Hebrew</option>'+keys.map(k=>`<option value="${k}">Compare: ${k}</option>`).join("");
   const qv=$("#q-ver").value; $("#q-ver").innerHTML=keys.filter(k=>k!=="NLT").map(k=>`<option value="${k}">${k}${k==="ESV"?" (via Crossway)":""}</option>`).join(""); if(qv)$("#q-ver").value=qv;
   $("#sel-ver").value=S.ver;$("#sel-par").value=S.par;
   const lic=REMOTE.filter(k=>AVAIL[k]); $("#lic-label").textContent=lic.length?`Licensed: ${lic.join(", ")} (fetched live, non-commercial use).`:"Add your own ESV or NLT key in Settings (tap your name).";
@@ -536,7 +549,7 @@ function notedKeys(){const set=new Set();S.notes.forEach(n=>(n.refs||[]).forEach
 async function renderChapter(){
   const base=await load("BSB"); if(!base[S.b]?.[S.c-1]){S.c=1;}
   fillSelectors(base); const el=$("#chapter");
-  $("#read-title").textContent=BOOKS[S.b]+" "+S.c; $("#read-ver-label").textContent=VERSIONS[S.ver]+(S.par&&S.par!==S.ver?" · compared with "+S.par:"");
+  $("#read-title").textContent=BOOKS[S.b]+" "+S.c; $("#read-ver-label").textContent=VERSIONS[S.ver]+(S.par&&S.par!==S.ver?" · compared with "+(S.par==="ORIG"?(S.b<39?"the Hebrew":"the Greek"):S.par):"");
   let vs,par=null;
   try{ if(REMOTE.includes(S.ver))el.innerHTML='<p class="empty"><span class="spinner"></span> Loading '+S.ver+'…</p>';
     vs=await getChapter(S.ver,S.b,S.c); if(S.par&&S.par!==S.ver)par=await getChapter(S.par,S.b,S.c);}
@@ -545,7 +558,8 @@ async function renderChapter(){
   const noted=notedKeys();
   const vspan=(t,v,i)=>`<span class="v${S.sel&&S.sel.b===S.b&&S.sel.c===S.c&&v>=S.sel.v&&v<=(S.sel.v2||S.sel.v)?" sel":""}${S.picks.has(v)?" pick":""}${noted.has(S.b+"."+S.c+"."+v)?" noted":""}" data-v="${v}" tabindex="0"><sup>${v}</sup>${esc(t)}</span> `;
   if(par){el.className="chapter parallel";const pv=par;
-    el.innerHTML=`<div class="label colhead">${S.ver}</div><div class="label colhead">${S.par}</div>`+vs.map((t,i)=>`<div class="pv">${vspan(t,i+1)}</div><div class="pv">${vspan(pv[i]||"",i+1)}</div>`).join("");}
+    const oc=S.par==="ORIG"?(S.b<39?" orig-he":" orig-gr"):"";
+    el.innerHTML=`<div class="label colhead">${S.ver}</div><div class="label colhead">${S.par==="ORIG"?(S.b<39?"Hebrew (WLC)":"Greek (SBLGNT)"):S.par}</div>`+vs.map((t,i)=>`<div class="pv">${vspan(t,i+1)}</div><div class="pv${oc}"${oc?` lang="${S.b<39?"he":"grc"}"`:""}>${vspan(pv[i]||"",i+1)}</div>`).join("");}
   else{el.className="chapter";el.innerHTML=(el.querySelector(".notice")?el.innerHTML:"")+"<p>"+vs.map((t,i)=>t?vspan(t,i+1):"").join("")+"</p>";}
   savePos(); paintPicks();
 }
@@ -578,7 +592,7 @@ $("#goto").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const r=pars
 function openRef(r){S.b=r.b;S.c=r.c;show("read");renderChapter().then(()=>{if(r.v1){selectVerse(r.b,r.c,r.v1,r.v2);const el=document.querySelector(`.v[data-v="${r.v1}"]`);el&&el.scrollIntoView({block:"center"});}});}
 
 /* ---------- Study panel ---------- */
-function selectVerse(b,c,v,v2){S.sel={b,c,v,v2:v2||v};S.lexWord=null;S.lexNum=null;S.lexPhrase=null;
+function selectVerse(b,c,v,v2){S.sel={b,c,v,v2:v2||v};S.lexWord=null;S.lexNum=null;S.lexPhrase=null;S.origIdx=null;
   document.querySelectorAll(".v.sel").forEach(x=>x.classList.remove("sel"));
   if(b===S.b&&c===S.c)document.querySelectorAll("#chapter .v").forEach(x=>{const n=+x.dataset.v;x.classList.toggle("sel",n>=v&&n<=(v2||v));});
   renderStudy();$("#study").classList.remove("closed");}
@@ -622,6 +636,7 @@ async function renderStudy(){
       ${(ctxA<v||ctxZ>v2)?`<button class="btn ghost sm" id="st-context" data-a="${ctxA}" data-z="${ctxZ}">Show more verses</button>`:""}
       ${(b!==S.b||c!==S.c)?`<button class="btn ghost sm" id="st-open">Open in reader</button>`:""}
     </div></div>
+  ${single?`<div class="sec" id="orig-sec" hidden></div>`:""}
   ${single?`<div class="sec"><div class="label">Word study · tap a word</div>${tagWords&&S.ver!=="BSB"?`<div class="sub">Shown in the BSB, where each word is linked to the exact Hebrew or Greek behind it.</div>`:""}<div class="words">${words}</div><div id="lex-out"></div></div>`:""}
   <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
   <div class="sec" id="topics-sec" hidden></div>
@@ -629,7 +644,7 @@ async function renderStudy(){
   <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
     ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
   <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
-  renderComm(); renderVerseTopics();
+  renderComm(); renderVerseTopics(); if(single)renderOrig();
   if(S.lexNum&&single&&tagWords)showLexNum(S.lexNum,S.lexPhrase); else if(S.lexWord&&single)showLex(S.lexWord);
 }
 function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p>
@@ -1439,6 +1454,8 @@ function aboutHtml(){
   <h2>Study tools</h2><dl>
   ${row("Cross-references",`OpenBible.info Cross References, licensed under Creative Commons Attribution (CC BY). ${L("https://www.openbible.info/labs/cross-references/")}<small>This app shows up to 14 of the highest-voted references for each verse.</small>`)}
   ${row("Strong's lexicon",`James Strong, <i>Dictionary of Greek Words</i> (1890) and <i>A Concise Dictionary of the Words in the Hebrew Bible</i> (1894), public domain. Digital edition © Open Scriptures, licensed CC BY-SA. ${L("https://github.com/openscriptures/strongs")}<small>Greek XML prepared by Ulrik Petersen; Hebrew from data by David Instone-Brewer, edited by David Troidl. The lexicon file in this app is a reformatted extract and is shared under the same CC BY-SA license.</small>`)}
+  ${row("Hebrew text",`The Westminster Leningrad Codex (public domain), with lemma and morphology from the Open Scriptures Hebrew Bible Project, CC BY 4.0. ${L("https://github.com/openscriptures/morphhb")}`)}
+  ${row("Greek text",`Scripture quotations marked SBLGNT are from the SBL Greek New Testament. Copyright © 2010 Society of Biblical Literature and Logos Bible Software, CC BY 4.0 ${L("https://sblgnt.com")}. Morphology and lemmas by MorphGNT, CC BY-SA ${L("https://github.com/morphgnt/sblgnt")}.<small>English glosses under each word come from the BSB's interlinear (public domain), matched to the original word in each verse.</small>`)}
   ${row("Full lexicons",`Greek: G. Abbott-Smith, <i>A Manual Greek Lexicon of the New Testament</i> (1922), public domain, digital edition from the Biblical Humanities Abbott-Smith project ${L("https://github.com/biblicalhumanities/Abbott-Smith")}. Hebrew: Brown, Driver and Briggs, <i>A Hebrew and English Lexicon of the Old Testament</i> (1906), public domain; Open Scriptures digital edition, CC BY 4.0 ${L("https://github.com/openscriptures/HebrewLexicon")}.<small>Some Brown-Driver-Briggs entries are still abridged in the digital edition.</small>`)}
   ${row("Word-by-word tagging",`The Berean Standard Bible with Strong's numbers on every word, public domain, from the BSB publishing project. This powers exact word study and Strong's-number searches. ${L("https://github.com/BSB-publishing/bsb2usfm")}<small>For other versions, the word study shows the BSB wording of the same verse.</small>`)}
   ${row("Dictionary",`Easton's Bible Dictionary (1897), public domain, from the CCEL edition prepared by the neuu-org Bible dictionary dataset. ${L("https://github.com/neuu-org/bible-dictionary-dataset")}`)}
@@ -1807,6 +1824,45 @@ document.addEventListener("click",e=>{
   const pl=t.closest&&t.closest("[data-place]");if(pl){e.preventDefault();$("#about").hidden=true;showPlace(+pl.dataset.place);return;}
   const rc=t.closest&&t.closest(".pp-card .chip[data-ref]");if(rc){openRef(JSON.parse(rc.dataset.ref));}
 });
+/* ---------- Original Greek and Hebrew (OSHB/WLC and SBLGNT/MorphGNT) ---------- */
+const loadOrig=b=>load("orig/"+b);
+function parseMorph(code){ // plain-English grammar for OSHB (H/A…) and MorphGNT (2-char POS + 8-char parse) codes
+  if(!code)return "";
+  if(/^[HA]/.test(code)&&!/^[A-Z][A-Z-]-/.test(code.slice(0,3))){ // Hebrew/Aramaic
+    const lang=code[0]==="A"?"Aramaic":"",c=code.slice(1),P={A:"Adjective",C:"Conjunction",D:"Adverb",N:"Noun",P:"Pronoun",R:"Preposition",S:"Suffix",T:"Particle",V:"Verb"}[c[0]]||"";
+    const G={m:"masculine",f:"feminine",b:"both genders",c:"common"},N={s:"singular",p:"plural",d:"dual"},St={a:"absolute",c:"construct",d:"determined"},Pe={1:"1st person",2:"2nd person",3:"3rd person"};
+    const out=[P];
+    if(c[0]==="V"){const stem={q:"Qal",N:"Niphal",p:"Piel",P:"Pual",h:"Hiphil",H:"Hophal",t:"Hithpael",o:"Polel",O:"Polal",r:"Hithpolel",m:"Poel",M:"Poal",k:"Palel",K:"Pulal",Q:"Qal passive",l:"Pilpel",L:"Polpal",f:"Hithpalpel",D:"Nithpael",j:"Pealal",i:"Pilel",u:"Hothpaal",c:"Tiphil",v:"Hishtaphel",w:"Nithpalel",y:"Nithpoel",z:"Hithpoel"}[c[1]],
+      tp={p:"Perfect",q:"Sequential perfect",i:"Imperfect",w:"Sequential imperfect",h:"Cohortative",j:"Jussive",v:"Imperative",r:"Participle (active)",s:"Participle (passive)",a:"Infinitive absolute",c:"Infinitive construct"}[c[2]];
+      out.push(stem,tp);const rest=c.slice(3);if(/[123]/.test(rest[0]))out.push(Pe[rest[0]],G[rest[1]],N[rest[2]]);else out.push(G[rest[0]],N[rest[1]],St[rest[2]]);}
+    else if(c[0]==="N"){out[0]=({p:"Proper noun",g:"Gentilic noun",c:"Noun"})[c[1]]||"Noun";if(c[1]!=="p")out.push(G[c[2]],N[c[3]],St[c[4]]);}
+    else if(c[0]==="A"){out[0]=({c:"Cardinal number",o:"Ordinal number",g:"Gentilic adjective"})[c[1]]||"Adjective";out.push(G[c[2]],N[c[3]],St[c[4]]);}
+    else if(c[0]==="P"){out[0]=({d:"Demonstrative pronoun",f:"Indefinite pronoun",i:"Interrogative pronoun",p:"Personal pronoun",r:"Relative pronoun"})[c[1]]||"Pronoun";out.push(Pe[c[2]],G[c[3]],N[c[4]]);}
+    else if(c[0]==="T"){out[0]=({a:"Affirmation",d:"Definite article",e:"Exhortation",i:"Interrogative particle",j:"Interjection",m:"Demonstrative particle",n:"Negative particle",o:"Direct object marker",r:"Relative particle"})[c[1]]||"Particle";}
+    else if(c[0]==="S"){out[0]=({d:"Directional he",h:"Paragogic he",n:"Paragogic nun",p:"Pronominal suffix"})[c[1]]||"Suffix";out.push(Pe[c[2]],G[c[3]],N[c[4]]);}
+    return [lang,...out].filter(Boolean).join(" · ");}
+  // Greek
+  const pos=code.slice(0,2),q=code.slice(2);
+  const POS={"A-":"Adjective","C-":"Conjunction","D-":"Adverb","I-":"Interjection","N-":"Noun","P-":"Preposition","RA":"Article","RD":"Demonstrative pronoun","RI":"Interrogative/indefinite pronoun","RP":"Personal pronoun","RR":"Relative pronoun","V-":"Verb","X-":"Particle"}[pos]||"";
+  const T={P:"Present",I:"Imperfect",F:"Future",A:"Aorist",X:"Perfect",Y:"Pluperfect"},V={A:"Active",M:"Middle",P:"Passive"},M={I:"Indicative",D:"Imperative",S:"Subjunctive",O:"Optative",N:"Infinitive",P:"Participle"},C={N:"Nominative",G:"Genitive",D:"Dative",A:"Accusative",V:"Vocative"},Nu={S:"Singular",P:"Plural"},Ge={M:"Masculine",F:"Feminine",N:"Neuter"},Pe={1:"1st person",2:"2nd person",3:"3rd person"},De={C:"Comparative",S:"Superlative"};
+  return [POS,T[q[1]],V[q[2]],M[q[3]],Pe[q[0]],C[q[4]],Nu[q[5]],Ge[q[6]],De[q[7]]].filter(Boolean).join(" · ");}
+async function origVerse(b,c,v){const d=await loadOrig(b).catch(()=>null);return d&&d[c-1]?d[c-1][v-1]||[]:[];}
+async function renderOrig(){
+  const el=$("#orig-sec");if(!el||!S.sel)return;const {b,c,v}=S.sel;const words=await origVerse(b,c,v);
+  if(!S.sel||S.sel.b!==b||S.sel.c!==c||S.sel.v!==v)return;
+  if(!words.length){el.hidden=true;return;}
+  const he=b<39;el.hidden=false;
+  el.innerHTML=`<div class="sec-head"><div class="label">Original ${he?"Hebrew":"Greek"} · tap a word</div><span class="sub">${he?"right to left":""}</span></div>
+    <div class="orig ${he?"rtl":"grc"}" lang="${he?"he":"grc"}">${words.map((w,i)=>`<button class="ow${S.origIdx===i?" on":""}" data-oi="${i}"><span class="o">${esc(w[0])}</span><span class="g">${esc(w[3]||"")}</span></button>`).join("")}</div>
+    <div id="orig-out"></div>`;
+  if(S.origIdx!=null&&words[S.origIdx])showOrigWord(words[S.origIdx]);}
+async function showOrigWord(w){
+  const out=$("#orig-out");if(!out)return;const lex=await load("lexicon");const e=w[1]&&lex[w[1]];const he=/^[HA]/.test(w[2]);
+  out.innerHTML=`<div class="parse"><b lang="${he?"he":"grc"}">${esc(w[0])}</b> ${w[3]?`<span class="sub">“${esc(w[3])}”</span>`:""}<br>${esc(parseMorph(w[2])||"")}${e?`<br>Dictionary form: <b lang="${he?"he":"grc"}" style="font-size:16px">${esc(e[0])}</b> <i>${esc(e[1])}</i> · ${w[1]}`:""}</div>`+(e?lexCard([w[1],e]):"");
+  const full=await fullLexHtml(w[1]);if(full)out.insertAdjacentHTML("beforeend",full);}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest(".ow[data-oi]");if(!b)return;
+  S.origIdx=+b.dataset.oi;document.querySelectorAll(".ow").forEach(x=>x.classList.toggle("on",x===b));
+  const {b:bk,c,v}=S.sel;const w=(await origVerse(bk,c,v))[S.origIdx];if(w)showOrigWord(w);});
 /* ---------- Full screen (the page's own, so the browser toolbar can't cover the app) ---------- */
 (function(){const b=$("#fs-btn");if(!document.fullscreenEnabled)return;b.hidden=false;
   const paint=()=>{b.textContent=document.fullscreenElement?"Exit full screen":"⛶ Full screen";};
