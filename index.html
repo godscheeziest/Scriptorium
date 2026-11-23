@@ -269,6 +269,14 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
 .sync-dot.off{background:var(--muted)}
 .sync-dot.busy{background:var(--hl)}
+.comm-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.comm-head select{flex:1;min-width:0}
+.comm-body{font-family:var(--scripture);font-size:15px;line-height:1.65;display:flex;flex-direction:column;gap:8px}
+.comm-body p{margin:0}
+.comm-body .rng{font-family:var(--ui);font-size:12px;font-weight:700;color:var(--rubric)}
+.comm-body .clip{max-height:340px;overflow:hidden;position:relative}
+.comm-body .clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:60px;background:linear-gradient(transparent,var(--panel))}
+.cref{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--accent) 40%,transparent);cursor:pointer}
 </style>
 </head>
 <body>
@@ -563,9 +571,11 @@ async function renderStudy(){
     </div></div>
   ${single?`<div class="sec"><div class="label">Word study · tap a word</div>${tagWords&&S.ver!=="BSB"?`<div class="sub">Shown in the BSB, where each word is linked to the exact Hebrew or Greek behind it.</div>`:""}<div class="words">${words}</div><div id="lex-out"></div></div>`:""}
   <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
+  <div class="sec" id="comm-sec"></div>
   <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
     ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
   <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
+  renderComm();
   if(S.lexNum&&single&&tagWords)showLexNum(S.lexNum,S.lexPhrase); else if(S.lexWord&&single)showLex(S.lexWord);
 }
 function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p>
@@ -592,6 +602,61 @@ $("#study").addEventListener("click",async e=>{
   const lx=t.closest("[data-search]"); if(lx){runSearch(lx.dataset.search);}
 });
 const loadTags=b=>load("tags/"+b);
+/* ---------- Commentaries (Free Use Bible API by AO Lab, loaded a chapter at a time) ---------- */
+const USFM="GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV".split(" ");
+const COMMS=[
+  {id:"matthew-henry",name:"Matthew Henry",full:"Matthew Henry's Commentary on the Whole Bible (1706)",lic:"Public domain"},
+  {id:"tyndale",name:"Tyndale Open Study Notes",full:"Tyndale Open Study Notes",lic:"© Tyndale House Publishers, CC BY-SA 4.0"},
+  {id:"jamieson-fausset-brown",name:"Jamieson-Fausset-Brown",full:"Jamieson-Fausset-Brown Bible Commentary (1871)",lic:"Public domain"},
+  {id:"john-gill",name:"John Gill",full:"John Gill's Exposition of the Bible (1746–1763)",lic:"Public domain"},
+  {id:"adam-clarke",name:"Adam Clarke",full:"Adam Clarke's Commentary (1810–1826)",lic:"Public domain"},
+  {id:"john-calvin",name:"John Calvin",full:"John Calvin's Commentaries (Calvin Translation Society)",lic:"Public domain"},
+  {id:"keil-delitzsch",name:"Keil & Delitzsch (OT)",full:"Keil & Delitzsch, Commentary on the Old Testament",lic:"Public domain",ot:true},
+  {id:"barnes",name:"Barnes' Notes (NT)",full:"Albert Barnes' Notes on the New Testament",lic:"Public domain",nt:true}];
+const commCache={};
+function fetchComm(id,b,c){const k=id+"/"+b+"/"+c;
+  return commCache[k]||(commCache[k]=fetch(`https://bible.helloao.org/api/c/${id}/${USFM[b]}/${c}.json`).then(r=>{if(r.status===404)return null;if(!r.ok)throw new Error("The commentary service answered "+r.status+".");return r.json();}).then(j=>{
+    if(!j)return null;const ch=j.chapter||{};
+    const items=(ch.content||[]).filter(x=>x.type==="verse"&&x.number).map(x=>({n:x.number,text:(x.content||[]).map(t=>typeof t==="string"?t:(t&&t.text)||"").join("\n")})).sort((a,b)=>a.n-b.n);
+    const intro=Array.isArray(ch.introduction)?ch.introduction.join("\n"):(ch.introduction||"");
+    return {items,intro};}).catch(e=>{delete commCache[k];throw e;}));}
+function commChoice(){try{return localStorage.getItem("scr-comm")||"matthew-henry";}catch(e){return "matthew-henry";}}
+function linkRefs(text){ // escape, make Scripture references tappable, keep paragraphs
+  const refs=parseRefs(text);let out="",pos=0;
+  refs.forEach(r=>{out+=esc(text.slice(pos,r.index))+`<button class="cref" data-ref='${JSON.stringify({b:r.b,c:r.c,v1:r.v1,v2:r.v2})}'>${esc(text.substr(r.index,r.len))}</button>`;pos=r.index+r.len;});
+  out+=esc(text.slice(pos));
+  return out.split(/\n{1,}/).filter(x=>x.trim()).map(x=>`<p>${x}</p>`).join("");}
+async function renderComm(){
+  const el=$("#comm-sec");if(!el||!S.sel)return;const {b,c,v}=S.sel;const id=commChoice();const meta=COMMS.find(x=>x.id===id)||COMMS[0];
+  const head=`<div class="sec-head"><div class="label">Commentary</div></div><div class="comm-head"><select id="comm-pick" aria-label="Choose a commentary">${COMMS.map(x=>`<option value="${x.id}"${x.id===meta.id?" selected":""}>${esc(x.name)}</option>`).join("")}</select></div>`;
+  if((meta.ot&&b>=39)||(meta.nt&&b<39)){el.innerHTML=head+`<p class="empty">${esc(meta.name)} covers only the ${meta.ot?"Old":"New"} Testament. Choose another commentary.</p>`;return;}
+  el.innerHTML=head+`<p class="sub"><span class="spinner"></span> Loading ${esc(meta.name)}…</p>`;
+  let d;try{d=await fetchComm(meta.id,b,c);}catch(e){if(S.sel&&S.sel.b===b&&S.sel.c===c)el.innerHTML=head+`<p class="empty">${esc(e.message||"Couldn't load the commentary.")} Check your connection and try again.</p>`;return;}
+  if(!S.sel||S.sel.b!==b||S.sel.c!==c||S.sel.v!==v||commChoice()!==meta.id)return; // the person moved on
+  if(!d||(!d.items.length&&!d.intro)){el.innerHTML=head+`<p class="empty">${esc(meta.name)} has no notes on ${esc(BOOKS[b])} ${c}.</p>`;return;}
+  const idx=d.items.reduce((best,it,i)=>it.n<=v?i:best,-1);const it=idx>=0?d.items[idx]:null;
+  const end=it&&d.items[idx+1]?d.items[idx+1].n-1:null;
+  const rng=it?`${BOOKS[b]} ${c}:${it.n}${end&&end>it.n?"–"+end:""}`:`${BOOKS[b]} ${c}`;
+  const body=it?it.text:d.intro;const long=body.length>1400;
+  el.innerHTML=head+`<div class="comm-body"><div class="rng">${it?"On "+esc(rng):"Introduction to "+esc(BOOKS[b])+" "+c}</div>
+    <div class="${long?"clip":""}" id="comm-text">${linkRefs(body)}</div>
+    <div class="bar" style="margin:0">${long?`<button class="btn ghost sm" id="comm-more">Read all</button>`:""}<button class="btn ghost sm" id="comm-quote" data-rng="${esc(rng)}">Quote in note</button><button class="btn ghost sm" id="comm-chapter">Whole chapter</button></div>
+    <div class="fine" style="font-family:var(--ui);font-size:11.5px;color:var(--muted)">${esc(meta.full)}. ${esc(meta.lic)}.</div></div>`;
+  S.commText=body;}
+async function showCommChapter(){const {b,c}=S.sel;const meta=COMMS.find(x=>x.id===commChoice())||COMMS[0];let d;try{d=await fetchComm(meta.id,b,c);}catch(e){toast(e.message);return;}if(!d)return;
+  const parts=(d.intro?[`<div class="rng">Introduction</div>${linkRefs(d.intro)}`]:[]).concat(d.items.map((it,i)=>{const end=d.items[i+1]?d.items[i+1].n-1:null;return `<div class="rng">${esc(BOOKS[b])} ${c}:${it.n}${end&&end>it.n?"–"+end:""}</div>${linkRefs(it.text)}`;}));
+  $("#about-in").innerHTML=`<button class="btn close" type="button" data-about="close">Close</button><div class="tag">${esc(meta.full)}</div><h1>${esc(BOOKS[b])} ${c}</h1><div class="comm-body" style="font-size:16.5px">${parts.join("")}</div><p class="note">${esc(meta.lic)}. Loaded from the Free Use Bible API (bible.helloao.org).</p>`;
+  $("#about").hidden=false;$("#about .close").focus();}
+document.addEventListener("change",e=>{if(e.target.id==="comm-pick"){try{localStorage.setItem("scr-comm",e.target.value);}catch(x){}renderComm();}});
+document.addEventListener("click",async e=>{
+  const t=e.target;
+  const cr=t.closest&&t.closest(".cref");if(cr){$("#about").hidden=true;openRef(JSON.parse(cr.dataset.ref));return;}
+  if(t.id==="comm-more"){$("#comm-text").classList.remove("clip");t.remove();return;}
+  if(t.id==="comm-chapter"){showCommChapter();return;}
+  if(t.id==="comm-quote"){const meta=COMMS.find(x=>x.id===commChoice())||COMMS[0];const txt=(S.commText||"").trim();if(!txt)return;
+    const short=txt.length>900?txt.slice(0,900).replace(/\s+\S*$/,"")+"…":txt;
+    await appendToNote(`<blockquote><b>${esc(meta.name)} on ${esc(t.dataset.rng)}:</b> ${esc(short).replace(/\n+/g," ")}</blockquote><p><br></p>`,`${meta.name} on ${t.dataset.rng}`);}
+});
 const normNum=n=>{const m=String(n).toUpperCase().match(/^([GH])0*(\d+)/);return m?m[1]+m[2]:"";};
 async function showLexNum(num,phrase){
   const out=$("#lex-out"); if(!out)return; const lex=await load("lexicon"); const e=lex[num];
@@ -898,6 +963,11 @@ const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function blankNote(extra){return {id:newId(),title:"",speaker:"",date:new Date().toISOString().slice(0,10),passage:"",body:"",refs:[],questions:[],...extra};}
 function activeNote(){return S.notes.find(n=>n.id===S.activeNote);}
 
+async function appendToNote(blockHtml,label){
+  flushSave(); if(!store.profile){showWho();return;} let n=activeNote()||S.notes[0];
+  if(!n){const {b,c}=S.sel||{b:42,c:1};n=blankNote({title:"Notes on "+BOOKS[b]+" "+c,passage:BOOKS[b]+" "+c});}
+  n=JSON.parse(JSON.stringify(n)); n.html=noteHtml(n)+blockHtml; n.body=htmlToText(n.html); n.refs=collectRefs(n); S.activeNote=n.id;
+  await store.save(n).catch(()=>{}); toast(`Added ${label} to “${n.title||"Untitled"}”`);}
 async function addRangesToNote(ranges){
   if(!ranges.length)return; flushSave(); const texts=[];for(const r of ranges)texts.push(await getRange(S.ver,r).catch(async()=>rangeText(await load("BSB"),r))); let n=activeNote()||S.notes[0]; const r0=ranges[0];
   if(!n){n=blankNote({title:"Notes on "+BOOKS[r0.b]+" "+r0.c,passage:refLabel(r0)});}
@@ -1306,6 +1376,7 @@ function aboutHtml(){
   ${row("Cross-references",`OpenBible.info Cross References, licensed under Creative Commons Attribution (CC BY). ${L("https://www.openbible.info/labs/cross-references/")}<small>This app shows up to 14 of the highest-voted references for each verse.</small>`)}
   ${row("Strong's lexicon",`James Strong, <i>Dictionary of Greek Words</i> (1890) and <i>A Concise Dictionary of the Words in the Hebrew Bible</i> (1894), public domain. Digital edition © Open Scriptures, licensed CC BY-SA. ${L("https://github.com/openscriptures/strongs")}<small>Greek XML prepared by Ulrik Petersen; Hebrew from data by David Instone-Brewer, edited by David Troidl. The lexicon file in this app is a reformatted extract and is shared under the same CC BY-SA license.</small>`)}
   ${row("Word-by-word tagging",`The Berean Standard Bible with Strong's numbers on every word, public domain, from the BSB publishing project. This powers exact word study and Strong's-number searches. ${L("https://github.com/BSB-publishing/bsb2usfm")}<small>For other versions, the word study shows the BSB wording of the same verse.</small>`)}
+  ${row("Commentaries",`Matthew Henry, Jamieson-Fausset-Brown, John Gill, Adam Clarke, John Calvin, Keil &amp; Delitzsch and Albert Barnes (all public domain), and the Tyndale Open Study Notes (© Tyndale House Publishers, CC BY-SA 4.0). Loaded a chapter at a time from AO Lab's Free Use Bible API. ${L("https://bible.helloao.org")}`)}
   ${row("Discussion questions",`Written by Claude, an AI model from Anthropic, from your notes and the verses you cite. ${L("https://www.anthropic.com")}<small>AI can make mistakes. Check questions against Scripture before using them with a group. When Claude isn't available, the app uses its own built-in questions.</small>`)}
   </dl>
   <h2>Design and software</h2><dl>
