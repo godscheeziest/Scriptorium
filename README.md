@@ -22,6 +22,8 @@ A Bible study and sermon-notes app: read and compare translations, look up cross
 
 Notes are saved in the browser you write them in. Use **Back up notes** regularly, and **Restore from backup** to move them to another device.
 
+**Keeping it simple.** By default the verse panel shows just the verse, Add to note, Copy and a commentary; the rest (cross-references, other versions, word study, original Hebrew/Greek, people/places/topics) sits under **Go deeper**. In **Settings** (tap your name) people can switch **Study tools** to *Full* to open everything, and choose **Appearance**: Automatic, Light or Dark. Backup, restore, sync, translation keys, the tour and About & sources also live in Settings.
+
 Other features: a formatting toolbar for notes, selecting several verses at once to add to a note, a verse panel with previous/next and passage look-up, answer boxes under each discussion question, and **Share / Export** to save a note as Word (.docx) or PDF.
 
 ## Sync across devices (optional)

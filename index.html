@@ -8,6 +8,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="theme-color" content="#2A5B4D">
+<script>try{var t=localStorage.getItem("scr-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Scriptorium">
 <meta name="description" content="Bible reading, concordance, sermon notes and discussion questions.">
@@ -325,6 +326,27 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .parse b[lang]{font-size:20px;font-family:"SBL Hebrew","SBL BibLit","Times New Roman",var(--scripture)}
 .chapter .pv.orig-he{direction:rtl;text-align:right;font-family:"SBL Hebrew","Ezra SIL","Times New Roman",var(--scripture);font-size:22px;line-height:1.9}
 .chapter .pv.orig-gr{font-family:"SBL BibLit","Times New Roman",var(--scripture);font-size:19px}
+.deeper-btn{width:100%;justify-content:center;padding:10px 12px}
+details.deep{border-top:1px solid var(--rule)}
+details.deep:first-child{border-top:0}
+details.deep>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:12px 2px}
+details.deep>summary::-webkit-details-marker{display:none}
+details.deep>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);grid-row:1/3;grid-column:2;align-self:center;margin-right:4px;transition:transform .15s}
+details.deep[open]>summary::after{transform:rotate(-135deg)}
+details.deep .dt{font-weight:700;font-size:14.5px}
+details.deep .dd{font-size:12.5px;color:var(--muted)}
+details.deep .deep-body{padding:0 2px 14px;display:flex;flex-direction:column;gap:10px}
+.more-menu{position:absolute;z-index:35;right:0;top:calc(100% + 6px);width:min(340px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--rule);border-radius:10px;box-shadow:0 12px 30px #0003;padding:12px;display:flex;flex-direction:column;gap:10px}
+.more-menu label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.more-menu select,.more-menu input{width:100%;font-size:15px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink)}
+.more-menu .btn{justify-content:flex-start}
+.cmp-chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;border:1px solid var(--rule);border-radius:999px;padding:3px 4px 3px 10px;background:var(--panel)}
+.cmp-chip button{border:0;background:none;color:var(--muted);font-size:14px;padding:0 6px;cursor:pointer}
+.seg{display:flex;border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;width:max-content;max-width:100%}
+.seg button{border:0;background:var(--panel);padding:7px 14px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.rail-extra{display:none}
 </style>
 </head>
 <body>
@@ -334,36 +356,37 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
     <div class="brand" title="A scriptorium was the room where monks studied and copied Scripture by hand.">Scriptorium<small>Hear it. Study it. Grow deeper.</small></div>
     <div class="tabs" role="tablist">
       <button class="tab" data-view="read" id="tab-read"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1z"/><path d="M12 6v14"/></svg><span>Read</span></button>
-      <button class="tab" data-view="search" id="tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Concordance</span></button>
-      <button class="tab" data-view="dict" id="tab-dict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg><span>Dictionary</span></button>
-      <button class="tab" data-view="notes" id="tab-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Sermon notes</span></button>
+      <button class="tab" data-view="search" id="tab-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><span>Search</span></button>
+      <button class="tab" data-view="dict" id="tab-dict"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg><span>Library</span></button>
+      <button class="tab" data-view="notes" id="tab-notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 7h3"/></svg><span>Notes</span></button>
     </div>
     <button class="btn ghost sm fs-btn" id="fs-btn" type="button" hidden title="Hide the browser's toolbars (Esc to exit)">⛶ Full screen</button>
-    <button class="who-btn" id="who-btn" type="button" title="Switch person"><span class="av" id="who-av">?</span><span class="nm" id="who-nm">Choose profile</span></button>
+    <button class="who-btn" id="who-btn" type="button" title="Settings" aria-label="Settings"><span class="av" id="who-av">?</span><span class="nm" id="who-nm">Choose profile</span></button>
     <div class="rail-foot">
       <div><span class="status-dot" id="store-dot"></span><span id="store-label">Connecting…</span></div>
-      <div id="ai-label">Question builder: checking…</div>
-      <div><button class="btn ghost sm" id="help-btn" type="button">How it works</button></div>
-      <div class="backup"><button class="btn sm" id="export-notes">Back up notes</button><label class="btn sm" for="import-file">Restore</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
-      <div><span id="lic-label"></span> <button class="btn ghost sm" id="about-btn" type="button">About &amp; sources</button></div>
+      <div class="rail-extra"><span id="ai-label"></span><button id="help-btn" type="button"></button><button id="export-notes" type="button"></button><input type="file" id="import-file" accept="application/json,.json" hidden><span id="lic-label"></span><button id="about-btn" type="button"></button></div>
     </div>
   </nav>
 
   <main id="main">
     <!-- READ -->
     <section class="view" id="view-read">
-      <div class="bar">
+      <div class="bar" style="position:relative">
         <select id="sel-book" aria-label="Book"></select>
         <select id="sel-chap" aria-label="Chapter"></select>
         <select id="sel-ver" aria-label="Version"></select>
-        <select id="sel-par" aria-label="Compare with"><option value="">Compare: off</option></select>
-        <input type="text" id="goto" placeholder="Go to… e.g. Rom 8:28" aria-label="Go to reference" style="flex:1;min-width:150px">
-        <button class="btn" type="button" id="chap-map">Map</button>
-        <button class="btn" type="button" id="multi-btn" aria-pressed="false">Select verses</button>
+        <button class="btn" type="button" id="more-btn" aria-expanded="false" aria-controls="more-menu">More ▾</button>
+        <span class="cmp-chip" id="cmp-chip" hidden></span>
+        <div class="more-menu" id="more-menu" hidden>
+          <label>Go to a passage<input type="text" id="goto" placeholder="e.g. Rom 8:28 or Psalm 23" aria-label="Go to reference"></label>
+          <label>Compare side by side<select id="sel-par" aria-label="Compare with"><option value="">Compare: off</option></select></label>
+          <button class="btn" type="button" id="multi-btn" aria-pressed="false">Select several verses</button>
+          <button class="btn" type="button" id="chap-map">Map of this chapter</button>
+        </div>
       </div>
       <div class="label" id="read-ver-label">Berean Standard Bible</div>
       <h1 class="ref" id="read-title">John 3</h1>
-      <p class="sub" id="read-sub">Tap any verse to open cross-references, other versions, word studies and your notes.</p>
+      <p class="sub" id="read-sub">Tap any verse to read about it and add it to your notes.</p>
       <div class="chapter" id="chapter"><p class="empty">Loading the text…</p></div>
       <div class="copyright" id="read-copy" hidden></div>
       <div class="chap-nav"><button class="btn" id="prev-ch">← Previous</button><button class="btn" id="next-ch">Next →</button></div>
@@ -561,7 +584,7 @@ async function renderChapter(){
     const oc=S.par==="ORIG"?(S.b<39?" orig-he":" orig-gr"):"";
     el.innerHTML=`<div class="label colhead">${S.ver}</div><div class="label colhead">${S.par==="ORIG"?(S.b<39?"Hebrew (WLC)":"Greek (SBLGNT)"):S.par}</div>`+vs.map((t,i)=>`<div class="pv">${vspan(t,i+1)}</div><div class="pv${oc}"${oc?` lang="${S.b<39?"he":"grc"}"`:""}>${vspan(pv[i]||"",i+1)}</div>`).join("");}
   else{el.className="chapter";el.innerHTML=(el.querySelector(".notice")?el.innerHTML:"")+"<p>"+vs.map((t,i)=>t?vspan(t,i+1):"").join("")+"</p>";}
-  savePos(); paintPicks();
+  savePos(); paintPicks(); paintCompareChip();
 }
 $("#chapter").addEventListener("click",e=>{const el=e.target.closest(".v");if(!el)return;const v=+el.dataset.v;
   if(S.multi||e.shiftKey||e.metaKey||e.ctrlKey){
@@ -585,10 +608,18 @@ $("#sel-chap").addEventListener("change",e=>{S.picks.clear();S.c=+e.target.value
 $("#sel-ver").addEventListener("change",e=>{
   if(e.target.value.startsWith("+")){e.target.value=S.ver;if(!store.profile){showWho();return;}showWho("manage");setTimeout(()=>{$("#keys-box")?.scrollIntoView({block:"start"});$("#key-"+e.target.value.slice(1))?.focus();},60);return;}
   S.ver=e.target.value;renderChapter();if(S.sel)renderStudy();});
-$("#sel-par").addEventListener("change",e=>{S.par=e.target.value;renderChapter();});
+$("#sel-par").addEventListener("change",e=>{S.par=e.target.value;renderChapter();closeMore();});
+function closeMore(){$("#more-menu").hidden=true;$("#more-btn").setAttribute("aria-expanded","false");}
+$("#more-btn").addEventListener("click",e=>{e.stopPropagation();const m=$("#more-menu");m.hidden=!m.hidden;$("#more-btn").setAttribute("aria-expanded",String(!m.hidden));if(!m.hidden)$("#goto").focus();});
+document.addEventListener("click",e=>{if(!$("#more-menu").hidden&&!e.target.closest("#more-menu,#more-btn"))closeMore();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMore();});
+["#multi-btn","#chap-map"].forEach(id=>$(id).addEventListener("click",closeMore));
+function paintCompareChip(){const c=$("#cmp-chip");if(!S.par){c.hidden=true;return;}c.hidden=false;
+  c.innerHTML=`Comparing with ${S.par==="ORIG"?(S.b<39?"Hebrew":"Greek"):esc(S.par)} <button type="button" aria-label="Stop comparing" id="cmp-off">✕</button>`;}
+document.addEventListener("click",e=>{if(e.target.id==="cmp-off"){S.par="";$("#sel-par").value="";renderChapter();}});
 async function step(d){const bible=await load("BSB");S.picks.clear();S.c+=d;if(S.c<1){if(S.b>0){S.b--;S.c=bible[S.b].length;}else S.c=1;}else if(S.c>bible[S.b].length){if(S.b<65){S.b++;S.c=1;}else S.c--;}renderChapter();$("#main").scrollTop=0;}
 $("#prev-ch").addEventListener("click",()=>step(-1));$("#next-ch").addEventListener("click",()=>step(1));
-$("#goto").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const r=parseRefs(e.target.value)[0];if(!r){toast("Couldn't read that reference. Try a form like “Rom 8:28”.");return;}e.target.value="";openRef(r);});
+$("#goto").addEventListener("keydown",e=>{if(e.key!=="Enter")return;closeMore();const r=parseRefs(e.target.value)[0];if(!r){toast("Couldn't read that reference. Try a form like “Rom 8:28”.");return;}e.target.value="";openRef(r);});
 function openRef(r){S.b=r.b;S.c=r.c;show("read");renderChapter().then(()=>{if(r.v1){selectVerse(r.b,r.c,r.v1,r.v2);const el=document.querySelector(`.v[data-v="${r.v1}"]`);el&&el.scrollIntoView({block:"center"});}});}
 
 /* ---------- Study panel ---------- */
@@ -619,6 +650,12 @@ async function renderStudy(){
   const words=tagWords||text.split(/(\s+)/).map(w=>/\w/.test(w)?`<button class="word${S.lexWord&&stem(w)===stem(S.lexWord)?" on":""}" data-w="${esc(w.replace(/[^\w'-]/g,""))}">${esc(w)}</button>`:esc(w)).join("");
   const ctxA=Math.max(1,v-3),ctxZ=Math.min(chapLen,v2+3);
   const passage=[];for(let i=v;i<=v2;i++)passage.push(`<sup>${i}</sup>${esc(chap[i-1]||verseText(bible,b,c,i))}`);
+  const lvl=studyLevel(), op=openSecs(), deeperShown=lvl==="full"||!!S.deeper;
+  const det=(k,title,desc,body)=>`<details class="deep" data-k="${k}"${(lvl==="full"||op.has(k))?" open":""}><summary><span class="dt">${title}</span><span class="dd">${desc}</span></summary><div class="deep-body">${body}</div></details>`;
+  const xrefBody=`<div>
+    ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>`;
+  const versBody=`<div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>`;
+  const wordsBody=`${single?`<div>${tagWords&&S.ver!=="BSB"?`<div class="sub">Shown in the BSB, where each word is linked to the exact Hebrew or Greek behind it.</div>`:""}<div class="words">${words}</div><div id="lex-out"></div></div>`:""}`;
   sb.innerHTML=`
   <div class="sec">
     <div class="study-nav">
@@ -632,22 +669,33 @@ async function renderStudy(){
     <h2>${refLabel(ref)}</h2>
     ${single?"":`<div class="passage">${passage.join(" ")}</div>`}
     <div class="bar" style="margin:0">
-      <button class="btn primary sm" id="add-to-note">Add to sermon note</button><button class="btn sm" id="copy-verse">Copy</button>
+      <button class="btn primary sm" id="add-to-note">Add to note</button><button class="btn sm" id="copy-verse">Copy</button>
       ${(ctxA<v||ctxZ>v2)?`<button class="btn ghost sm" id="st-context" data-a="${ctxA}" data-z="${ctxZ}">Show more verses</button>`:""}
       ${(b!==S.b||c!==S.c)?`<button class="btn ghost sm" id="st-open">Open in reader</button>`:""}
     </div></div>
-  ${single?`<div class="sec" id="orig-sec" hidden></div>`:""}
-  ${single?`<div class="sec"><div class="label">Word study · tap a word</div>${tagWords&&S.ver!=="BSB"?`<div class="sub">Shown in the BSB, where each word is linked to the exact Hebrew or Greek behind it.</div>`:""}<div class="words">${words}</div><div id="lex-out"></div></div>`:""}
-  <div class="sec"><div class="label">Versions</div>${others.map(([k,t])=>`<div class="vers-row"><b>${k}</b>${esc(t)}</div>`).join("")}${S.allVers?"":`<div><button class="btn ghost sm" id="st-allvers">Show all versions</button></div>`}${REMOTE.filter(k=>COPY[k]&&others.some(o=>o[0]===k)).map(k=>`<div class="copyright" style="margin-top:4px">${esc(COPY[k])}</div>`).join("")}</div>
-  <div class="sec" id="topics-sec" hidden></div>
   <div class="sec" id="comm-sec"></div>
-  <div class="sec"><div class="sec-head"><div class="label">Cross-references${single?"":" for verse "+v}</div><span class="sub">${xrefs.length} ranked by reader votes</span></div>
-    ${xrefs.length?xrefs.map(r=>`<button class="xref" data-ref='${JSON.stringify(r)}'><span class="r">${refLabel(r)}</span><span class="t">${esc(rangeText(bible,r).slice(0,170))}${rangeText(bible,r).length>170?"…":""}</span></button>`).join(""):'<p class="empty">No cross-references recorded for this verse.</p>'}</div>
-  <div class="sec"><div class="label">In your notes</div>${related.length?related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join(""):'<p class="empty">No notes mention this passage yet.</p>'}</div>`;
-  renderComm(); renderVerseTopics(); if(single)renderOrig();
+  ${related.length?`<div class="sec"><div class="label">In your notes</div>`+related.map(n=>`<button class="note-link" data-note="${n.id}"><b>${esc(n.title||"Untitled")}</b><span class="why">${esc([n.speaker,n.date].filter(Boolean).join(" · "))}</span></button>`).join("")+"</div>":""}
+  <div class="sec">
+    ${lvl==="simple"?`<button class="btn deeper-btn" type="button" id="go-deeper" aria-expanded="${deeperShown}">${deeperShown?"Hide study tools":"Go deeper"}</button>`:`<div class="label">Study tools</div>`}
+    <div id="deeper"${deeperShown?"":" hidden"}>
+      ${det("xref","Cross-references",`${xrefs.length} related passage${xrefs.length===1?"":"s"}, ranked by readers`,xrefBody)}
+      ${det("vers","Other versions","The same verse in other translations",versBody)}
+      ${single?det("words","Word study","Tap a word to see the Hebrew or Greek behind it",wordsBody):""}
+      ${single?det("orig",`Original ${b<39?"Hebrew":"Greek"}`,"The verse in its first language, word by word",`<div id="orig-sec"></div>`):""}
+      ${det("names","People, places & topics","Who and where, and related topics",`<div id="topics-sec"></div>`)}
+    </div>
+  </div>`;
+  wireDeeper();
+  renderComm();
   if(S.lexNum&&single&&tagWords)showLexNum(S.lexNum,S.lexPhrase); else if(S.lexWord&&single)showLex(S.lexWord);
 }
-function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here. You'll see it in three versions, its cross-references, a Strong's word study for each word, and every note where you've cited it.</p>
+function deepVisible(k){const d=document.querySelector(`details.deep[data-k="${k}"]`);return !!(d&&d.open&&!$("#deeper").hidden);}
+function renderOpenDeep(){if(deepVisible("orig"))renderOrig();if(deepVisible("names"))renderVerseTopics();}
+function wireDeeper(){
+  document.querySelectorAll("details.deep").forEach(d=>d.addEventListener("toggle",()=>{if(studyLevel()==="simple")saveOpen(d.dataset.k,d.open);if(d.open)renderOpenDeep();}));
+  const g=$("#go-deeper");if(g)g.addEventListener("click",()=>{S.deeper=!S.deeper;$("#deeper").hidden=!S.deeper;g.textContent=S.deeper?"Hide study tools":"Go deeper";g.setAttribute("aria-expanded",String(S.deeper));if(S.deeper)renderOpenDeep();});
+  renderOpenDeep();}
+function studyIntro(){return `<div class="sec"><div class="label">Study margin</div><h2>Pick a verse</h2><p class="sub">Tap any verse in the reader, or look one up here, to read a short commentary and add it to your notes. Tap “Go deeper” for more study tools.</p>
   <form class="study-nav" id="st-form"><input type="text" id="st-ref" placeholder="Look up e.g. Rom 8:28-39" aria-label="Look up a verse"><button class="btn sm">Show</button></form></div>`;}
 $("#study").addEventListener("submit",e=>{if(e.target.id!=="st-form")return;e.preventDefault();const r=parseRefs($("#st-ref").value)[0];
   if(!r){toast("Couldn't read that reference. Try a form like “Rom 8:28-30”.");return;}
@@ -697,7 +745,7 @@ function linkRefs(text){ // escape, make Scripture references tappable, keep par
   return out.split(/\n{1,}/).filter(x=>x.trim()).map(x=>`<p>${x}</p>`).join("");}
 async function renderComm(){
   const el=$("#comm-sec");if(!el||!S.sel)return;const {b,c,v}=S.sel;const id=commChoice();const meta=COMMS.find(x=>x.id===id)||COMMS[0];
-  const head=`<div class="sec-head"><div class="label">Commentary</div></div><div class="comm-head"><select id="comm-pick" aria-label="Choose a commentary">${COMMS.map(x=>`<option value="${x.id}"${x.id===meta.id?" selected":""}>${esc(x.name)}</option>`).join("")}</select></div>`;
+  const head=`<div class="sec-head"><div class="label">Commentary</div></div><div class="comm-head"${studyLevel()==="simple"?' title="Choose a commentary"':""}><select id="comm-pick" aria-label="Choose a commentary">${COMMS.map(x=>`<option value="${x.id}"${x.id===meta.id?" selected":""}>${esc(x.name)}</option>`).join("")}</select></div>`;
   if((meta.ot&&b>=39)||(meta.nt&&b<39)){el.innerHTML=head+`<p class="empty">${esc(meta.name)} covers only the ${meta.ot?"Old":"New"} Testament. Choose another commentary.</p>`;return;}
   el.innerHTML=head+`<p class="sub"><span class="spinner"></span> Loading ${esc(meta.name)}…</p>`;
   let d;try{d=await fetchComm(meta.id,b,c);}catch(e){if(S.sel&&S.sel.b===b&&S.sel.c===c)el.innerHTML=head+`<p class="empty">${esc(e.message||"Couldn't load the commentary.")} Check your connection and try again.</p>`;return;}
@@ -882,7 +930,7 @@ const store={
   async remove(id){S.notes=S.notes.filter(n=>n.id!==id);await this.persist();onNotesChanged();sync.mark(id);}
 };
 const initial=n=>(n||"?").trim().charAt(0).toUpperCase()||"?";
-function paintWhoBtn(){const pr=store.profile;$("#who-av").textContent=pr?initial(pr.name):"?";$("#who-nm").textContent=pr?pr.name:"Choose profile";$("#who-btn").title=pr?`Signed in as ${pr.name}. Switch person`:"Choose who is studying";}
+function paintWhoBtn(){const pr=store.profile;$("#who-av").textContent=pr?initial(pr.name):"?";$("#who-nm").textContent=pr?pr.name:"Choose profile";$("#who-btn").title=pr?`${pr.name}: settings`:"Choose who is studying";$("#who-nm").textContent=pr?pr.name+" · Settings":"Choose profile";}
 function hideWho(){$("#who").hidden=true;}
 function updateProfile(patch){if(!store.profile)return;const pr={...store.profile,...patch};saveProfiles(profiles().map(x=>x.id===pr.id?pr:x));store.profile=pr;}
 const DAY=86400000;
@@ -956,6 +1004,16 @@ function showWho(view,arg){
       <div class="row"><button class="btn ghost" type="button" data-who="list">Back</button></div>`;setTimeout(()=>$("#sync-user")?.focus(),30);return;}
   if(view==="manage"&&cur){
     el.innerHTML=`<div class="tag">Settings</div><h1>${esc(cur.name)}</h1>
+    <div class="box"><b>Appearance</b>
+      <div class="seg" role="group" aria-label="Colour">${[["auto","Automatic"],["light","Light"],["dark","Dark"]].map(([k,l])=>`<button type="button" data-theme-pick="${k}" aria-pressed="${themeChoice()===k}">${l}</button>`).join("")}</div>
+      <span class="fine">Automatic follows your device's light or dark setting.</span>
+      <b style="margin-top:6px">Study tools</b>
+      <div class="seg" role="group" aria-label="Study tools">${[["simple","Simple"],["full","Full"]].map(([k,l])=>`<button type="button" data-level-pick="${k}" aria-pressed="${studyLevel()===k}">${l}</button>`).join("")}</div>
+      <span class="fine">Simple shows each verse with a short commentary, with deeper tools one tap away under “Go deeper”. Full opens every study tool.</span></div>
+    <div class="box"><b>Your notes</b><span class="fine" id="set-store">${esc($("#store-label").textContent)}</span>
+      <div class="row"><button class="btn sm" type="button" data-set="backup">Back up notes</button><label class="btn sm" for="import-file">Restore from backup</label></div>
+      <b style="margin-top:6px">Help</b>
+      <div class="row"><button class="btn ghost sm" type="button" data-set="tour">How it works</button><button class="btn ghost sm" type="button" data-set="about">About &amp; sources</button></div></div>
     <div class="box sync-box" id="sync-box">${syncBoxHtml()}</div>
     <div class="box" id="keys-box">${keysBoxHtml()}</div>
     <form id="who-rename"><label>Name<input type="text" id="who-name" maxlength="40" value="${esc(cur.name)}" required></label><div class="row"><button class="btn">Save name</button></div></form>
@@ -1739,9 +1797,9 @@ async function renderVerseTopics(){
   const topics=vt[c+"."+v]||[];
   const words=[...new Set((verseText(bsb,b,c,v).match(/\b[A-Z][a-z]{2,}(?:\s[A-Z][a-z]+)?\b/g)||[]))].filter(w=>!/^(The|And|But|For|Then|When|Now|This|That|There|These|Those|What|Who|His|Him|Her|She|They|Them|You|Your|Our|We|Let|Yet|So|If|In|On|At|As|Of|To|Do|Is|Be|All|No|Not|Lord|God)$/.test(w)&&I.map.get(w.toLowerCase())&&I.map.get(w.toLowerCase()).e).slice(0,8);
   const ppl=(pv[c+"."+v]||[]).filter(id=>id!=="YHVH_1"),pls=plv[c+"."+v]||[];
-  if(!topics.length&&!words.length&&!ppl.length&&!pls.length){el.innerHTML="";el.hidden=true;return;}
+  if(!topics.length&&!words.length&&!ppl.length&&!pls.length){el.innerHTML='<p class="empty">No people, places or topics are linked to this verse.</p>';return;}
   el.hidden=false;
-  el.innerHTML=`<div class="sec-head"><div class="label">Topics, people &amp; places</div></div>
+  el.innerHTML=`
     ${topics.length?`<div class="chips">${topics.slice(0,14).map(t=>`<button class="chip" data-dict="${esc(t)}" style="color:var(--accent)">${esc(titleCase(t))}</button>`).join("")}</div>`:""}
     ${ppl.length?`<div class="sub">People: ${ppl.map(id=>`<button class="cref" data-person="${esc(id)}">${esc(personName(id))}</button>`).join(", ")}</div>`:""}
     ${pls.length?`<div class="sub">Places: ${pls.map(i=>`<button class="cref" data-place="${i}">${esc(PLACES.rows[i][0])}</button>`).join(", ")}</div>`:""}
@@ -1850,9 +1908,9 @@ async function origVerse(b,c,v){const d=await loadOrig(b).catch(()=>null);return
 async function renderOrig(){
   const el=$("#orig-sec");if(!el||!S.sel)return;const {b,c,v}=S.sel;const words=await origVerse(b,c,v);
   if(!S.sel||S.sel.b!==b||S.sel.c!==c||S.sel.v!==v)return;
-  if(!words.length){el.hidden=true;return;}
+  if(!words.length){el.innerHTML='<p class="empty">No original-language text for this verse.</p>';return;}
   const he=b<39;el.hidden=false;
-  el.innerHTML=`<div class="sec-head"><div class="label">Original ${he?"Hebrew":"Greek"} · tap a word</div><span class="sub">${he?"right to left":""}</span></div>
+  el.innerHTML=`<div class="sub">${he?"Hebrew reads right to left. ":""}Tap a word for its grammar and meaning.</div>
     <div class="orig ${he?"rtl":"grc"}" lang="${he?"he":"grc"}">${words.map((w,i)=>`<button class="ow${S.origIdx===i?" on":""}" data-oi="${i}"><span class="o">${esc(w[0])}</span><span class="g">${esc(w[3]||"")}</span></button>`).join("")}</div>
     <div id="orig-out"></div>`;
   if(S.origIdx!=null&&words[S.origIdx])showOrigWord(words[S.origIdx]);}
@@ -1863,6 +1921,22 @@ async function showOrigWord(w){
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest(".ow[data-oi]");if(!b)return;
   S.origIdx=+b.dataset.oi;document.querySelectorAll(".ow").forEach(x=>x.classList.toggle("on",x===b));
   const {b:bk,c,v}=S.sel;const w=(await origVerse(bk,c,v))[S.origIdx];if(w)showOrigWord(w);});
+/* ---------- Settings: appearance and study level ---------- */
+function themeChoice(){try{return localStorage.getItem("scr-theme")||"auto";}catch(e){return "auto";}}
+function applyTheme(t){if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);else document.documentElement.removeAttribute("data-theme");}
+function studyLevel(){try{return localStorage.getItem("scr-level")==="full"?"full":"simple";}catch(e){return "simple";}}
+function openSecs(){try{return new Set(JSON.parse(localStorage.getItem("scr-open")||"[]"));}catch(e){return new Set();}}
+function saveOpen(k,on){const o=openSecs();on?o.add(k):o.delete(k);try{localStorage.setItem("scr-open",JSON.stringify([...o]));}catch(e){}}
+document.addEventListener("click",e=>{
+  const t=e.target.closest&&e.target.closest("[data-theme-pick],[data-level-pick],[data-set]");if(!t)return;
+  if(t.dataset.themePick){const v=t.dataset.themePick;try{v==="auto"?localStorage.removeItem("scr-theme"):localStorage.setItem("scr-theme",v);}catch(x){}applyTheme(v);
+    t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));return;}
+  if(t.dataset.levelPick){try{localStorage.setItem("scr-level",t.dataset.levelPick);}catch(x){}
+    t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));if(S.sel)renderStudy();return;}
+  if(t.dataset.set==="backup")$("#export-notes").click();
+  if(t.dataset.set==="tour"){hideWho();showTour(0);}
+  if(t.dataset.set==="about")showAbout();
+});
 /* ---------- Full screen (the page's own, so the browser toolbar can't cover the app) ---------- */
 (function(){const b=$("#fs-btn");if(!document.fullscreenEnabled)return;b.hidden=false;
   const paint=()=>{b.textContent=document.fullscreenElement?"Exit full screen":"⛶ Full screen";};
