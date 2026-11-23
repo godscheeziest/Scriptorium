@@ -303,6 +303,16 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .conf{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 8px;border:1px solid var(--rule)}
 .leaflet-container{font:inherit}
 @media (max-width:860px){.fam{grid-template-columns:90px minmax(0,1fr)}.map{height:280px}}
+.fulllex{border:1px solid var(--rule);border-radius:var(--r);background:var(--panel);padding:12px 14px;font-family:var(--scripture);font-size:15px;line-height:1.6;display:flex;flex-direction:column;gap:6px}
+.fulllex .src{font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.fulllex .sense{margin:4px 0 0 14px}
+.fulllex .sn{font-family:var(--ui);font-weight:700;font-size:12px;color:var(--rubric)}
+.fulllex .occ{font-family:var(--ui);font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--rule);border-radius:999px;padding:1px 7px;margin-right:6px}
+.fulllex .syn{margin-top:8px;padding-left:10px;border-left:3px solid var(--rule);font-size:14px}
+.fulllex b[lang],.fulllex i[lang]{font-family:"SBL Hebrew","Ezra SIL","Times New Roman",var(--scripture)}
+.fulllex hr{border:0;border-top:1px solid var(--rule);margin:8px 0}
+.fulllex .clip{max-height:260px;overflow:hidden;position:relative}
+.fulllex .clip::after{content:"";position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(transparent,var(--panel))}
 </style>
 </head>
 <body>
@@ -702,9 +712,18 @@ document.addEventListener("click",async e=>{
     await appendToNote(`<blockquote><b>${esc(meta.name)} on ${esc(t.dataset.rng)}:</b> ${esc(short).replace(/\n+/g," ")}</blockquote><p><br></p>`,`${meta.name} on ${t.dataset.rng}`);}
 });
 const normNum=n=>{const m=String(n).toUpperCase().match(/^([GH])0*(\d+)/);return m?m[1]+m[2]:"";};
+async function fullLexHtml(num,{open}={}){
+  const m=String(num).match(/^([GH])(\d+)$/);if(!m)return "";
+  let d;try{d=await load(`lex/${m[1].toLowerCase()}-${Math.floor(+m[2]/400)}`);}catch(e){return "";}
+  const h=d[num];if(!h)return "";
+  const src=m[1]==="G"?"Abbott-Smith, Manual Greek Lexicon of the New Testament":"Brown-Driver-Briggs Hebrew and English Lexicon";
+  const long=h.replace(/<[^>]+>/g,"").length>700&&!open;
+  return `<div class="fulllex"><div class="src">${src}</div><div class="${long?"clip":""}">${h}</div>${long?`<div><button class="btn ghost sm" data-lex-more>Read the full entry</button></div>`:""}</div>`;}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-lex-more]");if(b){const box=b.closest(".fulllex").querySelector(".clip");if(box)box.classList.remove("clip");b.remove();}});
 async function showLexNum(num,phrase){
   const out=$("#lex-out"); if(!out)return; const lex=await load("lexicon"); const e=lex[num];
   out.innerHTML=`<div class="sub">“${esc(phrase)}” here translates ${num[0]==="G"?"Greek":"Hebrew"} ${num}:</div>`+(e?lexCard([num,e]):`<p class="empty">Strong's has no entry for ${num}. It usually marks a small grammatical word or prefix.</p><div><button class="btn ghost sm" data-search="${num}">Find every use</button></div>`);
+  const full=await fullLexHtml(num); if(full&&S.lexNum===num)out.insertAdjacentHTML("beforeend",full);
 }
 async function showLex(word){
   const out=$("#lex-out"); if(!out)return; const lex=await load("lexicon"); const hits=lexLookup(lex,word,6);
@@ -759,7 +778,7 @@ async function strongsSearch(num){
     const hl=[];let txt="";toks.forEach(t=>{if(typeof t==="string")txt+=t;else{if(t[1]===num){hl.push([txt.length,t[0].length]);words++;const r=t[0].toLowerCase().replace(/[^a-z' -]/g,"").trim();if(r)renders[r]=(renders[r]||0)+1;}txt+=t[0];}});
     hits.push({b,c:ci+1,v:vi+1,t:txt,hl});}));});
   const lexHits=lex[num]?[[num,lex[num]]]:[];
-  SR={q:num,ver:"BSB",hits,lexHits,re:null,terms:[num],strongs:{num,words,renders:Object.entries(renders).sort((a,b)=>b[1]-a[1])}};drawHits();
+  SR={q:num,ver:"BSB",hits,lexHits,re:null,terms:[num],strongs:{num,words,renders:Object.entries(renders).sort((a,b)=>b[1]-a[1])},full:await fullLexHtml(num)};drawHits();
 }
 function markRanges(t,hl){let o="",p=0;hl.forEach(([s,l])=>{o+=esc(t.slice(p,s))+"<mark>"+esc(t.slice(s,s+l))+"</mark>";p=s+l;});return o+esc(t.slice(p));}
 async function esvSearchRun(q,page){
@@ -784,6 +803,7 @@ function drawHits(){
     <p class="sub">${hits.length.toLocaleString()} verse${hits.length===1?"":"s"} in ${Object.keys(counts).length} book${Object.keys(counts).length===1?"":"s"}${strongs?` · ${strongs.words.toLocaleString()} time${strongs.words===1?"":"s"}`:(terms.length>1||terms[0]!==q?" · searched for: "+esc(terms.join(", ")):"")}</p>
     ${strongs&&strongs.renders.length?`<div class="label" style="margin-top:14px">How the BSB translates it</div><p class="sub" style="margin-top:4px">${strongs.renders.slice(0,14).map(([r,n])=>`${esc(r)} <b>${n}</b>`).join(" · ")}${strongs.renders.length>14?" · …":""}</p>`:""}
     ${lexHits.length?`<div class="label" style="margin-top:18px">Original-language words · Strong's</div><div class="lexgrid">${lexHits.map(lexCard).join("")}</div>`:""}
+    ${SR.full?`<div style="margin:-6px 0 20px;max-width:70ch">${SR.full}</div>`:""}
     ${hits.length?`<div class="label">Where it appears · tap a book to filter</div><div class="dist">${Object.entries(counts).map(([b,n])=>`<button data-book="${b}" class="${S.searchBook===+b?"on":""}"><span>${BOOKS[b]}</span><span class="n">${n}</span><span class="bar-fill" style="width:${Math.round(n/max*100)}%"></span></button>`).join("")}</div>`:""}
     <div class="hits">${lim.map(h=>`<button class="hit" data-ref='{"b":${h.b},"c":${h.c},"v1":${h.v},"v2":${h.v}}'><span class="r">${shortBook(h.b)} ${h.c}:${h.v}</span><span class="t">${h.hl?markRanges(h.t,h.hl):esc(h.t).replace(new RegExp(re.source,"gi"),m=>"<mark>"+m+"</mark>")}</span></button>`).join("")}</div>
     ${shown.length>300?`<p class="sub">Showing the first 300 of ${shown.length}. Tap a book above to narrow the list.</p>`:""}
@@ -1419,6 +1439,7 @@ function aboutHtml(){
   <h2>Study tools</h2><dl>
   ${row("Cross-references",`OpenBible.info Cross References, licensed under Creative Commons Attribution (CC BY). ${L("https://www.openbible.info/labs/cross-references/")}<small>This app shows up to 14 of the highest-voted references for each verse.</small>`)}
   ${row("Strong's lexicon",`James Strong, <i>Dictionary of Greek Words</i> (1890) and <i>A Concise Dictionary of the Words in the Hebrew Bible</i> (1894), public domain. Digital edition © Open Scriptures, licensed CC BY-SA. ${L("https://github.com/openscriptures/strongs")}<small>Greek XML prepared by Ulrik Petersen; Hebrew from data by David Instone-Brewer, edited by David Troidl. The lexicon file in this app is a reformatted extract and is shared under the same CC BY-SA license.</small>`)}
+  ${row("Full lexicons",`Greek: G. Abbott-Smith, <i>A Manual Greek Lexicon of the New Testament</i> (1922), public domain, digital edition from the Biblical Humanities Abbott-Smith project ${L("https://github.com/biblicalhumanities/Abbott-Smith")}. Hebrew: Brown, Driver and Briggs, <i>A Hebrew and English Lexicon of the Old Testament</i> (1906), public domain; Open Scriptures digital edition, CC BY 4.0 ${L("https://github.com/openscriptures/HebrewLexicon")}.<small>Some Brown-Driver-Briggs entries are still abridged in the digital edition.</small>`)}
   ${row("Word-by-word tagging",`The Berean Standard Bible with Strong's numbers on every word, public domain, from the BSB publishing project. This powers exact word study and Strong's-number searches. ${L("https://github.com/BSB-publishing/bsb2usfm")}<small>For other versions, the word study shows the BSB wording of the same verse.</small>`)}
   ${row("Dictionary",`Easton's Bible Dictionary (1897), public domain, from the CCEL edition prepared by the neuu-org Bible dictionary dataset. ${L("https://github.com/neuu-org/bible-dictionary-dataset")}`)}
   ${row("Topics",`Nave's Topical Bible, public domain; structured data from BibleData by Brady Stephenson, CC BY 4.0. ${L("https://github.com/BradyStephenson/bible-data")}`)}
