@@ -24,6 +24,8 @@ Notes are saved in the browser you write them in. Use **Back up notes** regularl
 
 **Keeping it simple.** By default the verse panel shows just the verse, Add to note, Copy and a commentary; the rest (cross-references, other versions, word study, original Hebrew/Greek, people/places/topics) sits under **Go deeper**. In **Settings** (tap your name) people can switch **Study tools** to *Full* to open everything, and choose **Appearance**: Automatic, Light or Dark. Backup, restore, sync, translation keys, the tour and About & sources also live in Settings.
 
+**Daily reading plans.** Under **More → Daily reading plan**: the Bible in a year (an Old Testament passage plus one from the New Testament, Psalms or Proverbs each day), the New Testament in 90 days, the Gospels in 30 days, and Psalms and Proverbs in a month. The days are built from the BSB text so each day has about the same amount of reading, without splitting chapters. Today's reading shows at the top of the Read tab. Progress is kept in the profile, included in backups, and synced as a hidden `_plan` row in the `notes` table.
+
 Other features: a formatting toolbar for notes, selecting several verses at once to add to a note, a verse panel with previous/next and passage look-up, answer boxes under each discussion question, and **Share / Export** to save a note as Word (.docx) or PDF.
 
 ## Sync across devices (optional)

@@ -347,6 +347,24 @@ details.deep .deep-body{padding:0 2px 14px;display:flex;flex-direction:column;ga
 .seg button+button{border-left:1px solid var(--rule)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .rail-extra{display:none}
+.plan-card{border:1px solid var(--rule);border-radius:10px;background:var(--panel);padding:12px 14px;margin:0 0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.plan-card .pc-head{flex:1 1 100%;display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.plan-card .pc-reads{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:6px}
+.plan-card .pc-behind{flex:1 1 100%;font-size:12.5px;color:var(--muted)}
+.rd{border:1px solid var(--rule);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 12px;font-weight:600;font-size:14px;cursor:pointer}
+.rd.here{border-color:var(--accent);color:var(--accent)}
+.plan-pick{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.plan-pick button{text-align:left;border:1px solid var(--rule);background:var(--panel);color:var(--ink);border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.plan-pick button b{font-size:15.5px}.plan-pick button span{font-size:13px;color:var(--muted)}
+.plan-bar{height:6px;border-radius:3px;background:var(--rule);overflow:hidden;margin:6px 0 4px}.plan-bar i{display:block;height:100%;background:var(--accent)}
+.plan-days{display:flex;flex-direction:column;margin-top:10px;border-top:1px solid var(--rule)}
+.plan-day{display:grid;grid-template-columns:28px 64px 1fr;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--rule);font-size:14px}
+.plan-day.next{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.plan-day input{width:18px;height:18px;accent-color:var(--accent)}
+.plan-day .dn{color:var(--muted);font-size:12.5px}
+.plan-day .rl{display:flex;flex-wrap:wrap;gap:4px 10px}
+.plan-day .rl button{border:0;background:none;padding:0;color:var(--ink);font:inherit;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.plan-day.done .rl button{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -382,8 +400,10 @@ details.deep .deep-body{padding:0 2px 14px;display:flex;flex-direction:column;ga
           <label>Compare side by side<select id="sel-par" aria-label="Compare with"><option value="">Compare: off</option></select></label>
           <button class="btn" type="button" id="multi-btn" aria-pressed="false">Select several verses</button>
           <button class="btn" type="button" id="chap-map">Map of this chapter</button>
+          <button class="btn" type="button" id="plan-btn">Daily reading plan</button>
         </div>
       </div>
+      <div class="plan-card" id="plan-card" hidden></div>
       <div class="label" id="read-ver-label">Berean Standard Bible</div>
       <h1 class="ref" id="read-title">John 3</h1>
       <p class="sub" id="read-sub">Tap any verse to read about it and add it to your notes.</p>
@@ -546,7 +566,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200);}
 
 /* ---------- Views / routing ---------- */
-function show(view){S.view=view;if(view!=="read"&&S.multi)setMulti(false);["read","search","dict","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
+function show(view){S.view=view;if(view!=="read")$("#plan-card").hidden=true;if(view!=="read"&&S.multi)setMulti(false);["read","search","dict","notes"].forEach(v=>{$("#view-"+v).hidden=v!==view;$("#tab-"+v).setAttribute("aria-current",v===view?"page":"false");});
   if(location.hash!=="#"+view)history.replaceState(null,"","#"+view);
   if(view!=="read"&&window.innerWidth<=860)$("#study").classList.add("closed");
   if(view==="notes")renderNotes(); if(view==="read")renderChapter();}
@@ -584,7 +604,7 @@ async function renderChapter(){
     const oc=S.par==="ORIG"?(S.b<39?" orig-he":" orig-gr"):"";
     el.innerHTML=`<div class="label colhead">${S.ver}</div><div class="label colhead">${S.par==="ORIG"?(S.b<39?"Hebrew (WLC)":"Greek (SBLGNT)"):S.par}</div>`+vs.map((t,i)=>`<div class="pv">${vspan(t,i+1)}</div><div class="pv${oc}"${oc?` lang="${S.b<39?"he":"grc"}"`:""}>${vspan(pv[i]||"",i+1)}</div>`).join("");}
   else{el.className="chapter";el.innerHTML=(el.querySelector(".notice")?el.innerHTML:"")+"<p>"+vs.map((t,i)=>t?vspan(t,i+1):"").join("")+"</p>";}
-  savePos(); paintPicks(); paintCompareChip();
+  savePos(); paintPicks(); paintCompareChip(); paintPlan();
 }
 $("#chapter").addEventListener("click",e=>{const el=e.target.closest(".v");if(!el)return;const v=+el.dataset.v;
   if(S.multi||e.shiftKey||e.metaKey||e.ctrlKey){
@@ -916,7 +936,7 @@ const store={
     if(S.pendingShare&&S.shared){S.pendingShare=false;await importShared();}
     else if(!pr.tourDone&&$("#shared").hidden)setTimeout(()=>showTour(0),400);
   },
-  close(){sync.stopLive();MYKEYS.ESV="";MYKEYS.NLT="";refreshAvail();this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
+  close(){$("#plan-card").hidden=true;sync.stopLive();MYKEYS.ESV="";MYKEYS.NLT="";refreshAvail();this.profile=null;this.key=null;S.notes=[];S.activeNote=null;try{sessionStorage.removeItem("scr-who");}catch(e){}paintWhoBtn();onNotesChanged();},
   persist(){
     if(!this.profile){toast("Choose a profile first to save notes.");showWho();return;}
     const pr=this.profile,key=this.key,data=S.notes.slice();
@@ -1076,12 +1096,13 @@ $("#who").addEventListener("submit",async e=>{
 });
 $("#export-notes").addEventListener("click",()=>{
   if(!store.profile){showWho();return;} flushSave(); updateProfile({lastBackup:Date.now(),snoozeBackup:0}); setTimeout(renderNudge,50);
-  const blob=new Blob([JSON.stringify({app:"scriptorium",version:1,exported:new Date().toISOString(),notes:S.notes},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({app:"scriptorium",version:1,exported:new Date().toISOString(),notes:S.notes,plan:store.profile.plan||null},null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`scriptorium-${(store.profile.name||"notes").replace(/[^\w-]+/g,"-")}-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 });
 $("#import-file").addEventListener("change",async e=>{
   const f=e.target.files[0]; if(!f)return; if(!store.profile){showWho();e.target.value="";return;}
   try{const j=JSON.parse(await f.text());const incoming=Array.isArray(j)?j:j.notes; if(!Array.isArray(incoming))throw 0;
+    if(j.plan&&PLANS[j.plan.id]&&(!store.profile.plan||(j.plan.updatedAt||0)>(store.profile.plan.updatedAt||0))){updateProfile({plan:j.plan});sync.mark(PLAN_ID);paintPlan();}
     let added=0,updated=0; incoming.forEach(n=>{if(!n||!n.id)return;const i=S.notes.findIndex(x=>x.id===n.id);
       if(i<0){S.notes.push(n);added++;}else if((n.updatedAt||0)>(S.notes[i].updatedAt||0)){S.notes[i]=n;updated++;}});
     S.notes.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)); store.persist(); onNotesChanged(); if(S.view==="notes")renderNotes();
@@ -1579,6 +1600,7 @@ const sync={
       // send anything this device has that the cloud doesn't have, or has older
       const q=this.queue();
       if(first||!since)S.notes.forEach(n=>{const r=remote.get(n.id);if(!r||(r.updated_at||0)<(n.updatedAt||0))q.add(n.id);});
+      if((first||!since)&&store.profile.plan){const r=remote.get(PLAN_ID);if(!r||(r.updated_at||0)<(store.profile.plan.updatedAt||0))q.add(PLAN_ID);}
       this.saveQueue(q); await this.flush(true);
       const newest=rows.reduce((m,r)=>r.synced_at>m?r.synced_at:m,store.profile.syncSince||"");
       if(newest)updateProfile({syncSince:newest});
@@ -1589,6 +1611,7 @@ const sync={
   merge(rows){
     let changed=false;
     rows.forEach(r=>{
+      if(r.id===PLAN_ID){mergePlanRow(r);return;}
       if(pending&&pending.id===r.id&&(pending.updatedAt||0)>=r.updated_at)return; // being typed here
       const i=S.notes.findIndex(n=>n.id===r.id); const local=i>=0?S.notes[i]:null;
       if(r.deleted){if(local&&(local.updatedAt||0)<=r.updated_at){S.notes.splice(i,1);changed=true;if(S.activeNote===r.id)S.activeNote=null;}return;}
@@ -1601,7 +1624,7 @@ const sync={
   mark(id){if(!this.linked())return;const q=this.queue();q.add(id);this.saveQueue(q);clearTimeout(this.timer);this.timer=setTimeout(()=>this.flush(),900);},
   async flush(inFull){
     if(!this.linked()||!navigator.onLine)return; const q=this.queue(); if(!q.size)return;
-    const rows=[...q].map(id=>{const n=S.notes.find(x=>x.id===id);
+    const rows=[...q].map(id=>{if(id===PLAN_ID)return planRow();const n=S.notes.find(x=>x.id===id);
       if(n){const d={...n};delete d.id;return {id,data:d,updated_at:n.updatedAt||Date.now(),deleted:false};}
       return {id,data:null,updated_at:Date.now(),deleted:true};});
     if(!inFull){this.busy=true;paintSync();}
@@ -1921,6 +1944,100 @@ async function showOrigWord(w){
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest(".ow[data-oi]");if(!b)return;
   S.origIdx=+b.dataset.oi;document.querySelectorAll(".ow").forEach(x=>x.classList.toggle("on",x===b));
   const {b:bk,c,v}=S.sel;const w=(await origVerse(bk,c,v))[S.origIdx];if(w)showOrigWord(w);});
+/* ---------- Daily reading plans ----------
+   Built from the BSB itself: each day gets an even share of reading, measured in characters,
+   never splitting a chapter. Progress lives on the profile and syncs as the special row "_plan". */
+const PLAN_ID="_plan";
+const PLANS={
+  year:{name:"The Bible in a year",days:365,desc:"Every day: a passage from the Old Testament, and one from the New Testament, Psalms or Proverbs. About 15 minutes.",
+    tracks:[[[0,17],[20,38]],[[39,65],[18,18],[19,19]]]},
+  nt90:{name:"New Testament in 90 days",days:90,desc:"Matthew to Revelation, about 3 chapters a day. About 15 minutes.",tracks:[[[39,65]]]},
+  gospels:{name:"The Gospels in 30 days",days:30,desc:"Matthew, Mark, Luke and John, about 3 chapters a day. About 12 minutes.",tracks:[[[39,42]]]},
+  wisdom:{name:"Psalms and Proverbs in a month",days:31,desc:"About 5 psalms and one chapter of Proverbs each day. About 12 minutes.",tracks:[[[18,18]],[[19,19]]]}
+};
+const planCache={};
+async function planDays(id){
+  if(planCache[id])return planCache[id];
+  const P=PLANS[id],bible=await load("BSB"),N=P.days,days=Array.from({length:N},()=>[]);
+  P.tracks.forEach(tr=>{
+    const ch=[];tr.forEach(([a,z])=>{for(let b=a;b<=z;b++)bible[b].forEach((vs,i)=>ch.push({b,c:i+1,w:vs.join(" ").length}));});
+    const total=ch.reduce((t,x)=>t+x.w,0);let i=0,acc=0;
+    for(let d=0;d<N;d++){const goal=total*(d+1)/N,part=[];
+      while(i<ch.length&&(part.length===0||(acc+ch[i].w/2<=goal&&ch.length-i>N-d-1))){part.push(ch[i]);acc+=ch[i].w;i++;}
+      if(d===N-1)while(i<ch.length){part.push(ch[i]);acc+=ch[i].w;i++;}
+      if(part.length)days[d].push(part.map(x=>[x.b,x.c]));}
+  });
+  return planCache[id]=days;
+}
+function readLabel(part){ // [[b,c],...] -> "Genesis 1–3 · Exodus 1"
+  const runs=[];part.forEach(([b,c])=>{const r=runs[runs.length-1];if(r&&r.b===b&&r.z===c-1)r.z=c;else runs.push({b,a:c,z:c});});
+  return runs.map(r=>({b:r.b,c:r.a,label:`${BOOKS[r.b]} ${r.a}${r.z>r.a?"–"+r.z:""}`}));
+}
+const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
+function dayIndexToday(pl){return Math.floor((Date.parse(todayISO())-Date.parse(pl.start))/864e5);}
+function curPlan(){return store.profile&&store.profile.plan&&PLANS[store.profile.plan.id]?store.profile.plan:null;}
+function setPlan(pl){
+  if(!store.profile)return;updateProfile({plan:pl?{...pl,updatedAt:Date.now()}:null,planGone:pl?0:Date.now()});
+  sync.mark(PLAN_ID);paintPlan();}
+function nextDay(pl,N){const done=new Set(pl.done||[]);for(let d=0;d<N;d++)if(!done.has(d))return d;return -1;}
+async function paintPlan(){
+  const card=$("#plan-card");const pl=curPlan();
+  if(!pl||S.view!=="read"){paintPlan.seq=(paintPlan.seq||0)+1;card.hidden=true;if(!$("#about").hidden&&$("#plan-view"))renderPlanView();return;}
+  const seq=paintPlan.seq=(paintPlan.seq||0)+1;
+  const days=await planDays(pl.id);if(seq!==paintPlan.seq||curPlan()!==pl||S.view!=="read")return;
+  const N=days.length,d=nextDay(pl,N);
+  if(d<0){card.hidden=false;card.innerHTML=`<div class="pc-head"><span>${esc(PLANS[pl.id].name)}</span></div><div class="pc-reads"><b>You finished the plan. Well done!</b></div><button class="btn sm" type="button" data-plan="open">Choose another</button>`;return;}
+  const behind=dayIndexToday(pl)-d;
+  const reads=days[d].flatMap(readLabel);
+  card.hidden=false;
+  card.innerHTML=`<div class="pc-head"><span>${behind<0?"Next reading":"Today's reading"} · Day ${d+1} of ${N}</span><button class="btn ghost sm" type="button" data-plan="open" style="padding:0 4px">Plan</button></div>
+    <div class="pc-reads">${reads.map(r=>`<button class="rd${r.b===S.b&&r.c===S.c?" here":""}" type="button" data-plan-go="${r.b}.${r.c}">${esc(r.label)}</button>`).join("")}</div>
+    <button class="btn primary sm" type="button" data-plan-done="${d}">Mark day ${d+1} read</button>
+    ${behind>1?`<div class="pc-behind">You're ${behind} days behind, and that's fine. Keep going from here, or <button class="linkish" type="button" data-plan="shift" style="border:0;background:none;padding:0;color:var(--accent);font:inherit;font-weight:600;cursor:pointer">move the plan so today is day ${d+1}</button>.</div>`:""}`;
+  if(!$("#about").hidden&&$("#plan-view"))renderPlanView();
+}
+async function renderPlanView(){
+  const pl=curPlan(),box=$("#about-in");
+  if(!pl){
+    box.innerHTML=`<button class="btn close" type="button" data-about="close">Close</button><div class="tag" id="plan-view">Daily reading</div><h1>Choose a reading plan</h1>
+      <p class="sub">Each day's reading shows at the top of the Read tab. Tap a passage to open it, then mark the day read. Missed a day? Just carry on from where you stopped.</p>
+      <div class="plan-pick">${Object.entries(PLANS).map(([k,P])=>`<button type="button" data-plan-start="${k}"><b>${esc(P.name)}</b><span>${esc(P.desc)}</span></button>`).join("")}</div>
+      <p class="note">Plans follow the order of the books in the Bible and give each day about the same amount of reading. Your progress is saved in your profile${sync.linked()?" and synced to your other devices":""}.</p>`;
+    return;}
+  const P=PLANS[pl.id],days=await planDays(pl.id),N=days.length,done=new Set(pl.done||[]),nd=nextDay(pl,N);
+  box.innerHTML=`<button class="btn close" type="button" data-about="close">Close</button><div class="tag" id="plan-view">Daily reading</div><h1>${esc(P.name)}</h1>
+    <div class="plan-bar"><i style="width:${Math.round(done.size/N*100)}%"></i></div>
+    <p class="sub">${done.size} of ${N} days read · started ${new Date(pl.start+"T12:00").toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"})}</p>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" type="button" data-plan="shift">Make today the next unread day</button><button class="btn ghost sm" type="button" data-plan="stop">Stop this plan</button></div>
+    <div class="plan-days">${days.map((parts,i)=>`<div class="plan-day${done.has(i)?" done":""}${i===nd?" next":""}" id="pd-${i}"><input type="checkbox" data-plan-tick="${i}" ${done.has(i)?"checked":""} aria-label="Day ${i+1} read"><span class="dn">Day ${i+1}</span><span class="rl">${parts.flatMap(readLabel).map(r=>`<button type="button" data-plan-go="${r.b}.${r.c}">${esc(r.label)}</button>`).join("")}</span></div>`).join("")}</div>`;
+}
+async function showPlan(){await renderPlanView();$("#about").hidden=false;const pl=curPlan();
+  if(pl){const nd=nextDay(pl,(await planDays(pl.id)).length);const el=$("#pd-"+nd);el&&el.scrollIntoView({block:"center"});}
+  $("#about .close").focus();}
+$("#plan-btn").addEventListener("click",()=>{closeMore();if(!store.profile){showWho();return;}showPlan();});
+document.addEventListener("click",async e=>{
+  const t=e.target.closest&&e.target.closest("[data-plan],[data-plan-go],[data-plan-done],[data-plan-start]");
+  if(!t)return;
+  if(t.dataset.planGo){const [b,c]=t.dataset.planGo.split(".").map(Number);$("#about").hidden=true;S.picks.clear();S.b=b;S.c=c;show("read");await renderChapter();$("#main").scrollTop=0;return;}
+  if(t.dataset.planStart){setPlan({id:t.dataset.planStart,start:todayISO(),done:[]});$("#about").hidden=true;show("read");toast("Plan started. Today's reading is at the top of the Read tab.");return;}
+  if(t.dataset.planDone){const pl=curPlan();if(!pl)return;const d=+t.dataset.planDone;setPlan({...pl,done:[...new Set([...(pl.done||[]),d])]});toast(`Day ${d+1} marked as read`);return;}
+  const a=t.dataset.plan,pl=curPlan();
+  if(a==="open"){showPlan();return;}
+  if(!pl)return;
+  if(a==="shift"){const nd=nextDay(pl,(await planDays(pl.id)).length);if(nd<0)return;const st=new Date(Date.parse(todayISO())-nd*864e5).toISOString().slice(0,10);setPlan({...pl,start:st});toast(`Today is now day ${nd+1}`);return;}
+  if(a==="stop"){if(!confirm("Stop this reading plan? Your ticks will be cleared."))return;setPlan(null);renderPlanView();}
+});
+document.addEventListener("change",e=>{const t=e.target;if(!t.dataset||t.dataset.planTick===undefined)return;const pl=curPlan();if(!pl)return;
+  const d=+t.dataset.planTick,set=new Set(pl.done||[]);t.checked?set.add(d):set.delete(d);setPlan({...pl,done:[...set]});});
+// sync: the plan travels as a hidden row alongside the notes
+function planRow(){const pr=store.profile;const pl=pr&&pr.plan;
+  if(pl)return {id:PLAN_ID,data:pl,updated_at:pl.updatedAt||Date.now(),deleted:false};
+  return {id:PLAN_ID,data:null,updated_at:(pr&&pr.planGone)||Date.now(),deleted:true};}
+function mergePlanRow(r){const pr=store.profile;if(!pr)return;
+  const localAt=pr.plan?(pr.plan.updatedAt||0):(pr.planGone||0);
+  if(r.updated_at<=localAt)return;
+  updateProfile(r.deleted?{plan:null,planGone:r.updated_at}:{plan:{...r.data,updatedAt:r.updated_at},planGone:0});paintPlan();}
+
 /* ---------- Settings: appearance and study level ---------- */
 function themeChoice(){try{return localStorage.getItem("scr-theme")||"auto";}catch(e){return "auto";}}
 function applyTheme(t){if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);else document.documentElement.removeAttribute("data-theme");}
