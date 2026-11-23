@@ -287,6 +287,22 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
 .topic-group .chips .chip{font-size:12.5px}
 .topic-verses{display:flex;flex-direction:column;gap:6px;font-family:var(--scripture);font-size:15px;line-height:1.55}
 .topic-verses b{font-family:var(--ui);font-size:12px;color:var(--rubric);margin-right:6px}
+.map{height:340px;border:1px solid var(--rule);border-radius:var(--r);margin:6px 0 4px;z-index:0}
+.map.tall{height:min(62vh,520px)}
+.pp-card{display:flex;flex-direction:column;gap:10px;max-width:66ch}
+.pp-meta{font-size:14px;color:var(--muted)}
+.fam{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 12px;font-size:15px}
+.fam dt{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:3px}
+.fam dd{margin:0}
+.lineage{font-size:14px;line-height:1.9}
+.lineage .arrow{color:var(--muted);margin:0 4px}
+.who-list{display:flex;flex-direction:column;gap:6px;margin:6px 0 14px}
+.who-list button{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid var(--rule);background:var(--panel);border-radius:var(--r);padding:8px 12px;width:100%}
+.who-list button b{font-size:15px}
+.who-list button span{font-size:12.5px;color:var(--muted)}
+.conf{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 8px;border:1px solid var(--rule)}
+.leaflet-container{font:inherit}
+@media (max-width:860px){.fam{grid-template-columns:90px minmax(0,1fr)}.map{height:280px}}
 </style>
 </head>
 <body>
@@ -320,6 +336,7 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
         <select id="sel-ver" aria-label="Version"></select>
         <select id="sel-par" aria-label="Compare with"><option value="">Compare: off</option></select>
         <input type="text" id="goto" placeholder="Go to… e.g. Rom 8:28" aria-label="Go to reference" style="flex:1;min-width:150px">
+        <button class="btn" type="button" id="chap-map">Map</button>
         <button class="btn" type="button" id="multi-btn" aria-pressed="false">Select verses</button>
       </div>
       <div class="label" id="read-ver-label">Berean Standard Bible</div>
@@ -357,8 +374,8 @@ mark{background:var(--hl);color:inherit;border-radius:2px;padding:0 1px}
       <div id="dict-out">
         <div class="label">Dictionary &amp; topics</div>
         <h1 class="ref">Easton's Bible Dictionary and Nave's Topical Bible</h1>
-        <p class="sub" style="max-width:62ch">Look up people, places and Bible words in Easton's dictionary (1897), and find every passage on a subject in Nave's Topical Bible. References open in the reader.</p>
-        <p class="examples">Try: <button class="btn ghost sm" data-dict="Faith">Faith</button> <button class="btn ghost sm" data-dict="Grace">Grace</button> <button class="btn ghost sm" data-dict="Tabernacle">Tabernacle</button> <button class="btn ghost sm" data-dict="Nicodemus">Nicodemus</button> <button class="btn ghost sm" data-dict="Prayer">Prayer</button> <button class="btn ghost sm" data-dict="Covenant">Covenant</button></p>
+        <p class="sub" style="max-width:62ch">Look up a person to see their family, ancestry and the places in their story; look up a place to see it on a map; look up Bible words in Easton's dictionary (1897); and find every passage on a subject in Nave's Topical Bible.</p>
+        <p class="examples">Try: <button class="btn ghost sm" data-dict="Faith">Faith</button> <button class="btn ghost sm" data-dict="Grace">Grace</button> <button class="btn ghost sm" data-dict="Tabernacle">Tabernacle</button> <button class="btn ghost sm" data-dict="Nicodemus">Nicodemus</button> <button class="btn ghost sm" data-dict="Prayer">Prayer</button> <button class="btn ghost sm" data-dict="Covenant">Covenant</button> <button class="btn ghost sm" data-dict="Ruth">Ruth</button> <button class="btn ghost sm" data-dict="Bethlehem">Bethlehem</button> <button class="btn ghost sm" data-dict="Paul">Paul</button></p>
       </div>
     </section>
 
@@ -1405,6 +1422,8 @@ function aboutHtml(){
   ${row("Word-by-word tagging",`The Berean Standard Bible with Strong's numbers on every word, public domain, from the BSB publishing project. This powers exact word study and Strong's-number searches. ${L("https://github.com/BSB-publishing/bsb2usfm")}<small>For other versions, the word study shows the BSB wording of the same verse.</small>`)}
   ${row("Dictionary",`Easton's Bible Dictionary (1897), public domain, from the CCEL edition prepared by the neuu-org Bible dictionary dataset. ${L("https://github.com/neuu-org/bible-dictionary-dataset")}`)}
   ${row("Topics",`Nave's Topical Bible, public domain; structured data from BibleData by Brady Stephenson, CC BY 4.0. ${L("https://github.com/BradyStephenson/bible-data")}`)}
+  ${row("People",`BibleData by Brady Stephenson: every named person, family relationships and the verses that mention them. CC BY 4.0. ${L("https://github.com/BradyStephenson/bible-data")}`)}
+  ${row("Places and maps",`OpenBible.info Bible Geocoding Data, CC BY 4.0 ${L("https://www.openbible.info/geo/")}. Map tiles © OpenStreetMap contributors ${L("https://www.openstreetmap.org/copyright")}; maps drawn with Leaflet (BSD licence).`)}
   ${row("Commentaries",`Matthew Henry, Jamieson-Fausset-Brown, John Gill, Adam Clarke, John Calvin, Keil &amp; Delitzsch and Albert Barnes (all public domain), and the Tyndale Open Study Notes (© Tyndale House Publishers, CC BY-SA 4.0). Loaded a chapter at a time from AO Lab's Free Use Bible API. ${L("https://bible.helloao.org")}`)}
   ${row("Discussion questions",`Written by Claude, an AI model from Anthropic, from your notes and the verses you cite. ${L("https://www.anthropic.com")}<small>AI can make mistakes. Check questions against Scripture before using them with a group. When Claude isn't available, the app uses its own built-in questions.</small>`)}
   </dl>
@@ -1632,11 +1651,18 @@ function resolveSee(raw,I,hit){ // "FAITH, TRIAL OF, below" -> topic FAITH, head
 async function lookup(q,opts={}){
   q=(q||"").trim(); if(!q)return; show("dict"); $("#dict-q").value=q; const out=$("#dict-out"),list=$("#dict-list");
   out.innerHTML=`<p class="sub"><span class="spinner"></span> Looking up “${esc(q)}”…</p>`; list.innerHTML="";
-  const I=await dictIndex(); const k=q.toLowerCase();
+  const I=await dictIndex(); const k=q.toLowerCase(); await peopleIndex(); await placesIndex();
+  const pMatch=PEOPLE.byName.get(k)||[], plMatch=PLACES.byName.get(k)||[];
   let hit=I.map.get(k)||I.map.get(k.replace(/s$/,""))||I.map.get(k+"s");
   const near=I.keys.filter(x=>x.startsWith(k)&&x!==(hit&&hit.term.toLowerCase())).slice(0,24);
   const also=near.length?near:I.keys.filter(x=>x.includes(k)).slice(0,24);
   list.innerHTML=also.length?`<div class="dict-list">${also.map(x=>{const h=I.map.get(x);return `<button data-dict="${esc(h.term)}">${esc(h.term)}<small>${[h.e?"dictionary":"",h.n?"topic":""].filter(Boolean).join(" · ")}</small></button>`;}).join("")}</div>`:"";
+  const ppParts=[];
+  if(pMatch.length===1&&!plMatch.length){ppParts.push(await personHtml(pMatch[0][0]));}
+  else if(pMatch.length)ppParts.push(`<div class="label">People named ${esc(pMatch[0][1])} (${pMatch.length})</div><div class="who-list">${pMatch.slice(0,20).map(r=>`<button data-person="${esc(r[0])}"><b>${esc(r[1])}</b><span>${esc(r[2]||"")}${r[5]?" · "+r[5]+" verses":""}</span></button>`).join("")}</div>`);
+  if(plMatch.length===1&&!pMatch.length)ppParts.push(await placeHtml(plMatch[0]));
+  else if(plMatch.length)ppParts.push(`<div class="label">Places named ${esc(PLACES.rows[plMatch[0]][0])}</div><div class="who-list">${plMatch.map(i=>{const r=PLACES.rows[i];const vk=verseKeys(r[5]);return `<button data-place="${i}"><b>${esc(r[0])}${vk[0]?` <span style="font-weight:500">(first in ${esc(BOOKS[vk[0][0]])} ${vk[0][1]}:${vk[0][2]})</span>`:""}</b><span>${esc(r[1].replace(/,/g,", "))} · ${esc(confLabel(r[4]))} · ${vk.length} verse${vk.length===1?"":"s"}${r[6]&&r[6].toLowerCase()!==r[0].toLowerCase()?" · today "+esc(r[6]):""}</span></button>`;}).join("")}</div>`);
+  if(!hit&&ppParts.length){out.innerHTML=ppParts.join("");if($("#pp-map"))drawMap($("#pp-map"),S.ppMap.points,{single:!!S.ppMap.single});return;}
   if(!hit){out.innerHTML=also.length?`<p class="sub">No exact entry for “${esc(q)}”. Did you mean one of these?</p>`:`<p class="empty">Nothing found for “${esc(q)}” in Easton's or Nave's. Try a shorter word, or a name like “Abraham”.</p>`;return;}
   const parts=[`<div class="label">${[hit.e?"Easton's Bible Dictionary":"",hit.n?"Nave's Topical Bible":""].filter(Boolean).join(" · ")}</div><h1 class="ref">${esc(hit.term)}</h1>`];
   if(hit.e){const d=await load("dict/easton-"+hit.e);const paras=d[hit.term]||d[Object.keys(d).find(x=>x.toLowerCase()===hit.term.toLowerCase())]||[];
@@ -1650,7 +1676,8 @@ async function lookup(q,opts={}){
         <div><button class="btn ghost sm" data-topic-verses="${gi}">Show the verses</button><button class="btn ghost sm" data-topic-note="${gi}">Add to note</button></div><div class="topic-verses" id="tv-${gi}"></div>`:""}</div>`;}).join("")+`<p class="fine" style="font-size:12px;color:var(--muted)">Nave's Topical Bible, public domain; data © Brady Stephenson, BibleData, CC BY 4.0.</p>`);
     S.topic={term:hit.term,groups};}
   else S.topic=null;
-  out.innerHTML=parts.join("");
+  out.innerHTML=(ppParts.length?ppParts.join("")+`<div style="height:18px"></div>`:"")+parts.join("").replace(/<h1 class="ref">[^<]*<\/h1>/,ppParts.length?"":"$&");
+  if($("#pp-map"))drawMap($("#pp-map"),S.ppMap.points,{single:!!S.ppMap.single});
   if(!opts.keepScroll)$("#main").scrollTop=0;
   if(opts.sub){const want=opts.sub.toLowerCase().replace(/[^a-z ]/g,"").trim();const gl=[...document.querySelectorAll("#dict-out .topic-group .gl")].find(x=>{const t=x.textContent.toLowerCase().replace(/[^a-z ]/g,"").trim();return t===want||t.startsWith(want)||want.startsWith(t)&&t.length>3;});
     if(gl){gl.scrollIntoView({block:"start"});gl.parentElement.style.background="var(--soft)";}}
@@ -1669,16 +1696,96 @@ document.addEventListener("click",async e=>{
 // verse panel: topics that cite this verse, and dictionary entries for names in it
 async function renderVerseTopics(){
   const el=$("#topics-sec");if(!el||!S.sel)return;const {b,c,v}=S.sel;
-  const [vt,I,bsb]=await Promise.all([load("dict/naves-verses/"+b).catch(()=>({})),dictIndex(),load("BSB")]);
+  const [vt,I,bsb,pv,plv]=await Promise.all([load("dict/naves-verses/"+b).catch(()=>({})),dictIndex(),load("BSB"),load("people/verses/"+b).catch(()=>({})),load("places/verses/"+b).catch(()=>({})),peopleIndex(),placesIndex()]);
   if(!S.sel||S.sel.b!==b||S.sel.c!==c||S.sel.v!==v)return;
   const topics=vt[c+"."+v]||[];
   const words=[...new Set((verseText(bsb,b,c,v).match(/\b[A-Z][a-z]{2,}(?:\s[A-Z][a-z]+)?\b/g)||[]))].filter(w=>!/^(The|And|But|For|Then|When|Now|This|That|There|These|Those|What|Who|His|Him|Her|She|They|Them|You|Your|Our|We|Let|Yet|So|If|In|On|At|As|Of|To|Do|Is|Be|All|No|Not|Lord|God)$/.test(w)&&I.map.get(w.toLowerCase())&&I.map.get(w.toLowerCase()).e).slice(0,8);
-  if(!topics.length&&!words.length){el.innerHTML="";el.hidden=true;return;}
+  const ppl=(pv[c+"."+v]||[]).filter(id=>id!=="YHVH_1"),pls=plv[c+"."+v]||[];
+  if(!topics.length&&!words.length&&!ppl.length&&!pls.length){el.innerHTML="";el.hidden=true;return;}
   el.hidden=false;
-  el.innerHTML=`<div class="sec-head"><div class="label">Topics &amp; names</div></div>
+  el.innerHTML=`<div class="sec-head"><div class="label">Topics, people &amp; places</div></div>
     ${topics.length?`<div class="chips">${topics.slice(0,14).map(t=>`<button class="chip" data-dict="${esc(t)}" style="color:var(--accent)">${esc(titleCase(t))}</button>`).join("")}</div>`:""}
+    ${ppl.length?`<div class="sub">People: ${ppl.map(id=>`<button class="cref" data-person="${esc(id)}">${esc(personName(id))}</button>`).join(", ")}</div>`:""}
+    ${pls.length?`<div class="sub">Places: ${pls.map(i=>`<button class="cref" data-place="${i}">${esc(PLACES.rows[i][0])}</button>`).join(", ")}</div>`:""}
     ${words.length?`<div class="sub">In the dictionary: ${words.map(w=>`<button class="cref" data-dict="${esc(w)}">${esc(w)}</button>`).join(", ")}</div>`:""}`;
 }
+/* ---------- People & places (BibleData and OpenBible.info geocoding, both CC BY 4.0) ---------- */
+let PEOPLE=null,PLACES=null;
+async function peopleIndex(){if(PEOPLE)return PEOPLE;const rows=await load("people/index");const byId=new Map(),byName=new Map();
+  rows.forEach(r=>{byId.set(r[0],r);const k=r[1].toLowerCase();if(!byName.has(k))byName.set(k,[]);byName.get(k).push(r);});
+  byName.forEach(l=>l.sort((a,b)=>b[5]-a[5]));return PEOPLE={rows,byId,byName};}
+async function placesIndex(){if(PLACES)return PLACES;const rows=await load("places/index");const byName=new Map();
+  rows.forEach((r,i)=>{const k=r[0].toLowerCase();if(!byName.has(k))byName.set(k,[]);byName.get(k).push(i);});return PLACES={rows,byName};}
+const personLetter=id=>{const c=id[0].toUpperCase();return c>="A"&&c<="Z"?c:"_";};
+const personName=id=>(PEOPLE&&PEOPLE.byId.get(id)||[id,id.replace(/_\d+$/,"")])[1];
+function confLabel(n){return n>=900?"Location certain":n>=600?"Location likely":n>=300?"Location possible":"Location uncertain";}
+function verseKeys(str){return (str||"").split(" ").filter(Boolean).map(k=>k.split(".").map(Number));}
+function refChip(b,c,v){return `<button class="chip" data-ref='${JSON.stringify({b,c,v1:v,v2:v})}'>${esc(BOOKS[b])} ${c}:${v}</button>`;}
+let leafletP=null;
+function loadLeaflet(){if(window.L)return Promise.resolve(window.L);
+  return leafletP||(leafletP=new Promise((res,rej)=>{const css=document.createElement("link");css.rel="stylesheet";css.href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";document.head.appendChild(css);
+    const sc=document.createElement("script");sc.src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";sc.onload=()=>res(window.L);sc.onerror=()=>{leafletP=null;rej(new Error("The map couldn't load. Check your connection."));};document.head.appendChild(sc);}));}
+async function drawMap(el,points,{single}={}){ // points: [{lat,lon,label,popup}]
+  if(!el)return;if(!points.length){el.outerHTML=`<p class="empty">No places with known locations to show.</p>`;return;}
+  let L;try{L=await loadLeaflet();}catch(e){el.outerHTML=`<p class="empty">${esc(e.message)}</p>`;return;}
+  const map=L.map(el,{scrollWheelZoom:false,attributionControl:true});
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:'Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · Places: <a href="https://www.openbible.info/geo/" target="_blank" rel="noopener">OpenBible.info</a>'}).addTo(map);
+  const ms=points.map(p=>L.circleMarker([p.lat,p.lon],{radius:p.big?9:7,color:"#A1281F",weight:2,fillColor:"#F3E3A6",fillOpacity:.9}).addTo(map).bindTooltip(p.label,{direction:"top",offset:[0,-6]}).bindPopup(p.popup||esc(p.label)));
+  if(points.length===1)map.setView([points[0].lat,points[0].lon],single?9:8);else map.fitBounds(L.featureGroup(ms).getBounds().pad(.25),{maxZoom:10});
+  setTimeout(()=>map.invalidateSize(),60);el._map=map;}
+function placePoint(i,extra){const r=PLACES.rows[i];return {lat:r[3],lon:r[2],label:r[0],popup:`<b>${esc(r[0])}</b><br>${esc(confLabel(r[4]))}${r[6]?" · "+esc(r[6]):""}<br><a href="#" data-place="${i}">Open place</a>${extra||""}`};}
+
+async function personHtml(id){
+  await peopleIndex();await placesIndex();const row=PEOPLE.byId.get(id);if(!row)return "";
+  const shard=await load("people/p-"+personLetter(id));const d=shard[id]||{r:[],v:""};
+  const by=t=>d.r.filter(x=>t.includes(x[0])).map(x=>x[1]).filter((x,i,a)=>a.indexOf(x)===i);
+  const link=pid=>`<button class="cref" data-person="${esc(pid)}">${esc(personName(pid))}</button>`;
+  const fam=[["Parents",by(["father","mother"])],["Spouses",by(["husband","wife","concubine"])],["Children",by(["son","daughter"])],["Siblings",by(["brother","sister","half-brother","half-sister"])],
+    ["Others",d.r.filter(x=>!["father","mother","husband","wife","concubine","son","daughter","brother","sister","half-brother","half-sister","ancestor","descendant","concubinator"].includes(x[0])).slice(0,12).map(x=>x[1]+"|"+x[0])]];
+  const famHtml=fam.filter(f=>f[1].length).map(([k,l])=>`<dt>${k}</dt><dd>${l.map(x=>{const [pid,rel]=x.split("|");return link(pid)+(rel?` <span class="sub">(${esc(rel)})</span>`:"");}).join(", ")}</dd>`).join("");
+  // ancestry: follow fathers upward
+  const line=[id];for(let i=0;i<14;i++){const cur=line[line.length-1];const sh=cur===id?shard:await load("people/p-"+personLetter(cur)).catch(()=>({}));const f=((sh[cur]||{}).r||[]).find(x=>x[0]==="father");if(!f||line.includes(f[1]))break;line.push(f[1]);}
+  const vs=verseKeys(d.v);
+  // places in this person's verses
+  const placeCount={};await Promise.all([...new Set(vs.map(v=>v[0]))].slice(0,30).map(b=>load("places/verses/"+b).catch(()=>({})).then(m=>{vs.filter(v=>v[0]===b).forEach(([,c,v])=>(m[c+"."+v]||[]).forEach(i=>{placeCount[i]=(placeCount[i]||0)+1;}));})));
+  const topPlaces=Object.entries(placeCount).sort((a,b)=>b[1]-a[1]).slice(0,14).map(([i])=>+i);
+  S.ppMap={points:topPlaces.map(i=>placePoint(i))};
+  return `<div class="pp-card"><div class="label">Person</div><h1 class="ref">${esc(row[1])}</h1>
+    <div class="pp-meta">${esc(row[2]||"")}${row[4]?` · Tribe of ${esc(row[4])}`:""} · in ${row[5].toLocaleString()} verse${row[5]===1?"":"s"}</div>
+    ${famHtml?`<dl class="fam">${famHtml}</dl>`:""}
+    ${line.length>2?`<div><div class="label">Ancestry (father's line)</div><div class="lineage">${line.map((pid,i)=>i?`<span class="arrow">←</span>${link(pid)}`:`<b>${esc(personName(pid))}</b>`).join("")}</div></div>`:""}
+    ${topPlaces.length?`<div><div class="label">Places in ${esc(row[1])}'s story</div><div class="map" id="pp-map"></div></div>`:""}
+    ${vs.length?`<div><div class="label">Verses</div><div class="chips">${vs.slice(0,30).map(([b,c,v])=>refChip(b,c,v)).join("")}${vs.length>30?`<span class="sub">+${vs.length-30} more</span>`:""}</div></div>`:""}
+    <p class="fine" style="font-size:12px;color:var(--muted)">People and family data: BibleData by Brady Stephenson, CC BY 4.0.</p></div>`;}
+async function placeHtml(i){
+  await placesIndex();await peopleIndex();const r=PLACES.rows[i];if(!r)return "";const vs=verseKeys(r[5]);
+  const pc={};await Promise.all([...new Set(vs.map(v=>v[0]))].map(b=>load("people/verses/"+b).catch(()=>({})).then(m=>{vs.filter(v=>v[0]===b).forEach(([,c,v])=>(m[c+"."+v]||[]).forEach(id=>{if(id!=="YHVH_1")pc[id]=(pc[id]||0)+1;}));})));
+  const people=Object.entries(pc).sort((a,b)=>b[1]-a[1]).slice(0,14).map(([id])=>id);
+  S.ppMap={points:[{...placePoint(i),big:true}],single:true};
+  return `<div class="pp-card"><div class="label">Place${r[1]?" · "+esc(r[1].replace(/,/g,", ")):""}</div><h1 class="ref">${esc(r[0])}</h1>
+    <div class="pp-meta"><span class="conf">${esc(confLabel(r[4]))}</span>${r[6]&&r[6].toLowerCase()!==r[0].toLowerCase()?` · today: ${esc(r[6])}`:""} · in ${vs.length} verse${vs.length===1?"":"s"}</div>
+    <div class="map" id="pp-map"></div>
+    ${people.length?`<div><div class="label">People connected with ${esc(r[0])}</div><div>${people.map(id=>`<button class="cref" data-person="${esc(id)}">${esc(personName(id))}</button>`).join(", ")}</div></div>`:""}
+    ${vs.length?`<div><div class="label">Verses</div><div class="chips">${vs.slice(0,40).map(([b,c,v])=>refChip(b,c,v)).join("")}${vs.length>40?`<span class="sub">+${vs.length-40} more</span>`:""}</div></div>`:""}
+    <p class="fine" style="font-size:12px;color:var(--muted)">Locations: OpenBible.info Bible Geocoding Data, CC BY 4.0. Many ancient sites are uncertain; the label shows how confident the identification is.</p></div>`;}
+async function showPerson(id){show("dict");$("#dict-list").innerHTML="";$("#dict-out").innerHTML=`<p class="sub"><span class="spinner"></span> Loading…</p>`;
+  const h=await personHtml(id);$("#dict-out").innerHTML=h||`<p class="empty">Person not found.</p>`;$("#dict-q").value=personName(id);$("#main").scrollTop=0;if($("#pp-map"))drawMap($("#pp-map"),S.ppMap.points);}
+async function showPlace(i){show("dict");$("#dict-list").innerHTML="";$("#dict-out").innerHTML=`<p class="sub"><span class="spinner"></span> Loading…</p>`;
+  const h=await placeHtml(i);$("#dict-out").innerHTML=h;$("#dict-q").value=PLACES.rows[i][0];$("#main").scrollTop=0;drawMap($("#pp-map"),S.ppMap.points,{single:true});}
+async function chapterMap(){
+  await placesIndex();const b=S.b,c=S.c;const m=await load("places/verses/"+b).catch(()=>({}));const seen={};
+  Object.entries(m).forEach(([k,list])=>{const [cc,vv]=k.split(".").map(Number);if(cc!==c)return;list.forEach(i=>{(seen[i]=seen[i]||[]).push(vv);});});
+  const ids=Object.keys(seen).map(Number);
+  $("#about-in").innerHTML=`<button class="btn close" type="button" data-about="close">Close</button><div class="tag">Map</div><h1>Places in ${esc(BOOKS[b])} ${c}</h1>
+    ${ids.length?`<div class="map tall" id="chap-map-el"></div><div class="chips">${ids.sort((x,y)=>Math.min(...seen[x])-Math.min(...seen[y])).map(i=>`<button class="chip" data-place="${i}">${esc(PLACES.rows[i][0])} <span class="sub">v. ${seen[i].slice(0,4).join(", ")}</span></button>`).join("")}</div>`:`<p class="empty">No mapped places are named in ${esc(BOOKS[b])} ${c}.</p>`}
+    <p class="note">Locations from OpenBible.info (CC BY 4.0); map © OpenStreetMap contributors. Tap a place to open it.</p>`;
+  $("#about").hidden=false;if(ids.length)drawMap($("#chap-map-el"),ids.map(i=>placePoint(i,`<br><span>v. ${seen[i].join(", ")}</span>`)));}
+$("#chap-map").addEventListener("click",chapterMap);
+document.addEventListener("click",e=>{
+  const t=e.target;const pe=t.closest&&t.closest("[data-person]");if(pe){e.preventDefault();$("#about").hidden=true;showPerson(pe.dataset.person);return;}
+  const pl=t.closest&&t.closest("[data-place]");if(pl){e.preventDefault();$("#about").hidden=true;showPlace(+pl.dataset.place);return;}
+  const rc=t.closest&&t.closest(".pp-card .chip[data-ref]");if(rc){openRef(JSON.parse(rc.dataset.ref));}
+});
 /* ---------- Full screen (the page's own, so the browser toolbar can't cover the app) ---------- */
 (function(){const b=$("#fs-btn");if(!document.fullscreenEnabled)return;b.hidden=false;
   const paint=()=>{b.textContent=document.fullscreenElement?"Exit full screen":"⛶ Full screen";};
